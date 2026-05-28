@@ -1,0 +1,23 @@
+[
+  {
+    "id": "mock-emp-1779442795421",
+    "user_id": "mock-user-1779442795419",
+    "business_id": "563e0afc-b101-4011-827f-a7c0200c88a6",
+    "business_slug": "puzzles",
+    "role": "cashier",
+    "active": true,
+    "username": "Zena",
+    "id_number": "32338950",
+    "id_document_url": "https://cktnqgjkdxtwhibsblno.supabase.co/storage/v1/object/public/IDs/563e0afc-b101-4011-827f-a7c0200c88a6/1779442784283-iddoc.png",
+    "account_number": "P25401",
+    "work_account_number": "PUZ-7685",
+    "password_plain": "Qwerty@001",
+    "email": "husseinzena39@gmail.com",
+    "created_at": "2026-05-22T09:39:55.421Z",
+    "profiles": {
+      "full_name": "Zena Hussein",
+      "phone": "+254722001100",
+      "avatar_url": "https://cktnqgjkdxtwhibsblno.supabase.co/storage/v1/object/public/profiles/563e0afc-b101-4011-827f-a7c0200c88a6/1779442780325-profile.png"
+    }
+  }
+]
