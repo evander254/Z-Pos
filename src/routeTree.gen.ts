@@ -18,11 +18,13 @@ import { Route as AuthLoginRouteImport } from './routes/auth.login'
 import { Route as AuthForgotPasswordRouteImport } from './routes/auth.forgot-password'
 import { Route as TSlugIndexRouteImport } from './routes/t.$slug.index'
 import { Route as TSlugSuppliersRouteImport } from './routes/t.$slug.suppliers'
+import { Route as TSlugStoresRouteImport } from './routes/t.$slug.stores'
 import { Route as TSlugSettingsRouteImport } from './routes/t.$slug.settings'
 import { Route as TSlugSalesRouteImport } from './routes/t.$slug.sales'
 import { Route as TSlugReceiptsRouteImport } from './routes/t.$slug.receipts'
 import { Route as TSlugProductsRouteImport } from './routes/t.$slug.products'
 import { Route as TSlugPosRouteImport } from './routes/t.$slug.pos'
+import { Route as TSlugNotificationsRouteImport } from './routes/t.$slug.notifications'
 import { Route as TSlugInsightsRouteImport } from './routes/t.$slug.insights'
 import { Route as TSlugEmployeesRouteImport } from './routes/t.$slug.employees'
 import { Route as TSlugCustomersRouteImport } from './routes/t.$slug.customers'
@@ -73,6 +75,11 @@ const TSlugSuppliersRoute = TSlugSuppliersRouteImport.update({
   path: '/suppliers',
   getParentRoute: () => TSlugRoute,
 } as any)
+const TSlugStoresRoute = TSlugStoresRouteImport.update({
+  id: '/stores',
+  path: '/stores',
+  getParentRoute: () => TSlugRoute,
+} as any)
 const TSlugSettingsRoute = TSlugSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -96,6 +103,11 @@ const TSlugProductsRoute = TSlugProductsRouteImport.update({
 const TSlugPosRoute = TSlugPosRouteImport.update({
   id: '/pos',
   path: '/pos',
+  getParentRoute: () => TSlugRoute,
+} as any)
+const TSlugNotificationsRoute = TSlugNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => TSlugRoute,
 } as any)
 const TSlugInsightsRoute = TSlugInsightsRouteImport.update({
@@ -131,11 +143,13 @@ export interface FileRoutesByFullPath {
   '/t/$slug/customers': typeof TSlugCustomersRoute
   '/t/$slug/employees': typeof TSlugEmployeesRoute
   '/t/$slug/insights': typeof TSlugInsightsRoute
+  '/t/$slug/notifications': typeof TSlugNotificationsRoute
   '/t/$slug/pos': typeof TSlugPosRoute
   '/t/$slug/products': typeof TSlugProductsRoute
   '/t/$slug/receipts': typeof TSlugReceiptsRoute
   '/t/$slug/sales': typeof TSlugSalesRoute
   '/t/$slug/settings': typeof TSlugSettingsRoute
+  '/t/$slug/stores': typeof TSlugStoresRoute
   '/t/$slug/suppliers': typeof TSlugSuppliersRoute
   '/t/$slug/': typeof TSlugIndexRoute
 }
@@ -150,11 +164,13 @@ export interface FileRoutesByTo {
   '/t/$slug/customers': typeof TSlugCustomersRoute
   '/t/$slug/employees': typeof TSlugEmployeesRoute
   '/t/$slug/insights': typeof TSlugInsightsRoute
+  '/t/$slug/notifications': typeof TSlugNotificationsRoute
   '/t/$slug/pos': typeof TSlugPosRoute
   '/t/$slug/products': typeof TSlugProductsRoute
   '/t/$slug/receipts': typeof TSlugReceiptsRoute
   '/t/$slug/sales': typeof TSlugSalesRoute
   '/t/$slug/settings': typeof TSlugSettingsRoute
+  '/t/$slug/stores': typeof TSlugStoresRoute
   '/t/$slug/suppliers': typeof TSlugSuppliersRoute
   '/t/$slug': typeof TSlugIndexRoute
 }
@@ -171,11 +187,13 @@ export interface FileRoutesById {
   '/t/$slug/customers': typeof TSlugCustomersRoute
   '/t/$slug/employees': typeof TSlugEmployeesRoute
   '/t/$slug/insights': typeof TSlugInsightsRoute
+  '/t/$slug/notifications': typeof TSlugNotificationsRoute
   '/t/$slug/pos': typeof TSlugPosRoute
   '/t/$slug/products': typeof TSlugProductsRoute
   '/t/$slug/receipts': typeof TSlugReceiptsRoute
   '/t/$slug/sales': typeof TSlugSalesRoute
   '/t/$slug/settings': typeof TSlugSettingsRoute
+  '/t/$slug/stores': typeof TSlugStoresRoute
   '/t/$slug/suppliers': typeof TSlugSuppliersRoute
   '/t/$slug/': typeof TSlugIndexRoute
 }
@@ -193,11 +211,13 @@ export interface FileRouteTypes {
     | '/t/$slug/customers'
     | '/t/$slug/employees'
     | '/t/$slug/insights'
+    | '/t/$slug/notifications'
     | '/t/$slug/pos'
     | '/t/$slug/products'
     | '/t/$slug/receipts'
     | '/t/$slug/sales'
     | '/t/$slug/settings'
+    | '/t/$slug/stores'
     | '/t/$slug/suppliers'
     | '/t/$slug/'
   fileRoutesByTo: FileRoutesByTo
@@ -212,11 +232,13 @@ export interface FileRouteTypes {
     | '/t/$slug/customers'
     | '/t/$slug/employees'
     | '/t/$slug/insights'
+    | '/t/$slug/notifications'
     | '/t/$slug/pos'
     | '/t/$slug/products'
     | '/t/$slug/receipts'
     | '/t/$slug/sales'
     | '/t/$slug/settings'
+    | '/t/$slug/stores'
     | '/t/$slug/suppliers'
     | '/t/$slug'
   id:
@@ -232,11 +254,13 @@ export interface FileRouteTypes {
     | '/t/$slug/customers'
     | '/t/$slug/employees'
     | '/t/$slug/insights'
+    | '/t/$slug/notifications'
     | '/t/$slug/pos'
     | '/t/$slug/products'
     | '/t/$slug/receipts'
     | '/t/$slug/sales'
     | '/t/$slug/settings'
+    | '/t/$slug/stores'
     | '/t/$slug/suppliers'
     | '/t/$slug/'
   fileRoutesById: FileRoutesById
@@ -316,6 +340,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TSlugSuppliersRouteImport
       parentRoute: typeof TSlugRoute
     }
+    '/t/$slug/stores': {
+      id: '/t/$slug/stores'
+      path: '/stores'
+      fullPath: '/t/$slug/stores'
+      preLoaderRoute: typeof TSlugStoresRouteImport
+      parentRoute: typeof TSlugRoute
+    }
     '/t/$slug/settings': {
       id: '/t/$slug/settings'
       path: '/settings'
@@ -349,6 +380,13 @@ declare module '@tanstack/react-router' {
       path: '/pos'
       fullPath: '/t/$slug/pos'
       preLoaderRoute: typeof TSlugPosRouteImport
+      parentRoute: typeof TSlugRoute
+    }
+    '/t/$slug/notifications': {
+      id: '/t/$slug/notifications'
+      path: '/notifications'
+      fullPath: '/t/$slug/notifications'
+      preLoaderRoute: typeof TSlugNotificationsRouteImport
       parentRoute: typeof TSlugRoute
     }
     '/t/$slug/insights': {
@@ -387,11 +425,13 @@ interface TSlugRouteChildren {
   TSlugCustomersRoute: typeof TSlugCustomersRoute
   TSlugEmployeesRoute: typeof TSlugEmployeesRoute
   TSlugInsightsRoute: typeof TSlugInsightsRoute
+  TSlugNotificationsRoute: typeof TSlugNotificationsRoute
   TSlugPosRoute: typeof TSlugPosRoute
   TSlugProductsRoute: typeof TSlugProductsRoute
   TSlugReceiptsRoute: typeof TSlugReceiptsRoute
   TSlugSalesRoute: typeof TSlugSalesRoute
   TSlugSettingsRoute: typeof TSlugSettingsRoute
+  TSlugStoresRoute: typeof TSlugStoresRoute
   TSlugSuppliersRoute: typeof TSlugSuppliersRoute
   TSlugIndexRoute: typeof TSlugIndexRoute
 }
@@ -401,11 +441,13 @@ const TSlugRouteChildren: TSlugRouteChildren = {
   TSlugCustomersRoute: TSlugCustomersRoute,
   TSlugEmployeesRoute: TSlugEmployeesRoute,
   TSlugInsightsRoute: TSlugInsightsRoute,
+  TSlugNotificationsRoute: TSlugNotificationsRoute,
   TSlugPosRoute: TSlugPosRoute,
   TSlugProductsRoute: TSlugProductsRoute,
   TSlugReceiptsRoute: TSlugReceiptsRoute,
   TSlugSalesRoute: TSlugSalesRoute,
   TSlugSettingsRoute: TSlugSettingsRoute,
+  TSlugStoresRoute: TSlugStoresRoute,
   TSlugSuppliersRoute: TSlugSuppliersRoute,
   TSlugIndexRoute: TSlugIndexRoute,
 }

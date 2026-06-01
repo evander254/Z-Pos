@@ -14,6 +14,101 @@ export type Database = {
   }
   public: {
     Tables: {
+      stores: {
+        Row: {
+          id: string
+          business_id: string
+          name: string
+          location: string | null
+          store_type: string | null
+          active: boolean | null
+          phone: string | null
+          email: string | null
+          manager_name: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          business_id: string
+          name: string
+          location?: string | null
+          store_type?: string | null
+          active?: boolean | null
+          phone?: string | null
+          email?: string | null
+          manager_name?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          business_id?: string
+          name?: string
+          location?: string | null
+          store_type?: string | null
+          active?: boolean | null
+          phone?: string | null
+          email?: string | null
+          manager_name?: string | null
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stores_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          id: string
+          business_id: string
+          store_id: string | null
+          title: string
+          message: string
+          type: string
+          is_read: boolean | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          business_id: string
+          store_id?: string | null
+          title: string
+          message: string
+          type: string
+          is_read?: boolean | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          business_id?: string
+          store_id?: string | null
+          title?: string
+          message?: string
+          type?: string
+          is_read?: boolean | null
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       activity_logs: {
         Row: {
           action: string | null
@@ -239,6 +334,7 @@ export type Database = {
           work_account_number: string | null
           password_plain: string | null
           email: string | null
+          store_id: string | null
         }
         Insert: {
           active?: boolean | null
@@ -254,6 +350,7 @@ export type Database = {
           work_account_number?: string | null
           password_plain?: string | null
           email?: string | null
+          store_id?: string | null
         }
         Update: {
           active?: boolean | null
@@ -269,6 +366,7 @@ export type Database = {
           work_account_number?: string | null
           password_plain?: string | null
           email?: string | null
+          store_id?: string | null
         }
         Relationships: [
           {
@@ -349,6 +447,7 @@ export type Database = {
           price: number
           sku: string | null
           stock_quantity: number | null
+          supplier_id: string | null
         }
         Insert: {
           active?: boolean | null
@@ -366,6 +465,7 @@ export type Database = {
           price: number
           sku?: string | null
           stock_quantity?: number | null
+          supplier_id?: string | null
         }
         Update: {
           active?: boolean | null
@@ -383,6 +483,7 @@ export type Database = {
           price?: number
           sku?: string | null
           stock_quantity?: number | null
+          supplier_id?: string | null
         }
         Relationships: [
           {
@@ -397,6 +498,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]
@@ -467,6 +575,48 @@ export type Database = {
           },
         ]
       }
+      purchase_order_items: {
+        Row: {
+          created_at: string | null
+          id: string
+          po_id: string | null
+          product_id: string | null
+          quantity: number
+          unit_cost: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          po_id?: string | null
+          product_id?: string | null
+          quantity: number
+          unit_cost: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          po_id?: string | null
+          product_id?: string | null
+          quantity?: number
+          unit_cost?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_items_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sale_items: {
         Row: {
           id: string
@@ -528,6 +678,7 @@ export type Database = {
           subtotal: number | null
           tax_amount: number | null
           total_amount: number | null
+          store_id: string | null
         }
         Insert: {
           business_id?: string | null
@@ -544,6 +695,7 @@ export type Database = {
           subtotal?: number | null
           tax_amount?: number | null
           total_amount?: number | null
+          store_id?: string | null
         }
         Update: {
           business_id?: string | null
@@ -560,6 +712,7 @@ export type Database = {
           subtotal?: number | null
           tax_amount?: number | null
           total_amount?: number | null
+          store_id?: string | null
         }
         Relationships: [
           {
@@ -590,27 +743,33 @@ export type Database = {
           address: string | null
           business_id: string | null
           created_at: string | null
+          delivery_days: string | null
           email: string | null
           id: string
           phone: string | null
+          provided_items: string | null
           supplier_name: string | null
         }
         Insert: {
           address?: string | null
           business_id?: string | null
           created_at?: string | null
+          delivery_days?: string | null
           email?: string | null
           id?: string
           phone?: string | null
+          provided_items?: string | null
           supplier_name?: string | null
         }
         Update: {
           address?: string | null
           business_id?: string | null
           created_at?: string | null
+          delivery_days?: string | null
           email?: string | null
           id?: string
           phone?: string | null
+          provided_items?: string | null
           supplier_name?: string | null
         }
         Relationships: [

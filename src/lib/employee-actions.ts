@@ -152,7 +152,8 @@ export const createEmployeeFn = createServerFn({ method: "POST" })
       password,
       business_id,
       role,
-      profile_picture_url
+      profile_picture_url,
+      store_id
     } = data;
 
     // Security check: Verify that the authenticated user owns this business
@@ -188,6 +189,7 @@ export const createEmployeeFn = createServerFn({ method: "POST" })
         work_account_number: cleanWorkAccountNumber,
         password_plain: password,
         email,
+        store_id,
         created_at: new Date().toISOString(),
         profiles: {
           full_name,
@@ -259,7 +261,8 @@ export const createEmployeeFn = createServerFn({ method: "POST" })
       account_number,
       work_account_number: cleanWorkAccountNumber,
       password_plain: password,
-      email
+      email,
+      store_id
     });
 
     if (empError) {
@@ -309,7 +312,8 @@ export const updateEmployeeFn = createServerFn({ method: "POST" })
       role,
       active,
       profile_picture_url,
-      business_id
+      business_id,
+      store_id
     } = data;
 
     // Security check: Verify that the authenticated user owns this business
@@ -341,6 +345,7 @@ export const updateEmployeeFn = createServerFn({ method: "POST" })
           account_number,
           work_account_number: cleanWorkAccountNumber,
           email,
+          store_id,
           ...(password && password.trim() !== "" ? { password_plain: password } : {}),
           profiles: {
             ...mockEmployees[index].profiles,
@@ -392,7 +397,8 @@ export const updateEmployeeFn = createServerFn({ method: "POST" })
       id_document_url,
       account_number,
       work_account_number: cleanWorkAccountNumber,
-      email
+      email,
+      store_id
     };
 
     if (password && password.trim() !== "") {

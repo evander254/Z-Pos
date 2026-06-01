@@ -5,7 +5,7 @@ import { useTenant } from "@/lib/tenant-context";
 import { 
   UserCog, Search, Plus, Trash2, Edit2, Fingerprint, FileText, Phone, 
   Mail, CreditCard, Loader2, Upload, X, ShieldAlert, UserCheck, UserX, Image as ImageIcon,
-  Key
+  Key, Store
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,6 +46,7 @@ function Employees() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>("all");
+  const [stores, setStores] = useState<{id: string, name: string}[]>([]);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -60,6 +61,7 @@ function Employees() {
   const [idNumber, setIdNumber] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [role, setRole] = useState("cashier");
+  const [storeId, setStoreId] = useState("");
   const [workAccountNumber, setWorkAccountNumber] = useState("");
   const [password, setPassword] = useState("");
   const [isActive, setIsActive] = useState(true);
@@ -102,8 +104,15 @@ function Employees() {
       });
   }
 
+  function loadStores() {
+    if (!business) return;
+    supabase.from("stores").select("id, name").eq("business_id", business.id)
+      .then(({ data }) => { if (data) setStores(data); });
+  }
+
   useEffect(() => {
     loadEmployees();
+    loadStores();
   }, [business]);
 
   // Search & Filter
@@ -139,6 +148,7 @@ function Employees() {
     setIdNumber(emp.id_number || "");
     setAccountNumber(emp.account_number || "");
     setRole(emp.role);
+    setStoreId(emp.store_id || "");
     setWorkAccountNumber(emp.work_account_number || "");
     setPassword(""); // Keep blank unless resetting
     setIsActive(emp.active);
@@ -159,6 +169,7 @@ function Employees() {
     setIdNumber("");
     setAccountNumber("");
     setRole("cashier");
+    setStoreId("");
     setWorkAccountNumber("");
     setPassword("");
     setIsActive(true);
@@ -251,7 +262,8 @@ function Employees() {
             password: password || undefined,
             role,
             active: isActive,
-            profile_picture_url: finalProfileUrl
+            profile_picture_url: finalProfileUrl,
+            store_id: storeId || null
           }
         });
         if (result && "error" in (result as any)) {
@@ -272,7 +284,8 @@ function Employees() {
             work_account_number: workAccountNumber,
             password,
             role,
-            profile_picture_url: finalProfileUrl
+            profile_picture_url: finalProfileUrl,
+            store_id: storeId || null
           }
         });
         if (result && "error" in (result as any)) {
@@ -428,6 +441,12 @@ function Employees() {
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground text-xs">Account No</span>
                     <span className="font-medium text-foreground font-mono text-xs">{emp.account_number}</span>
+                  </div>
+                )}
+                {emp.store_id && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground text-xs">Assigned Store</span>
+                    <span className="font-medium text-foreground text-xs flex items-center gap-1"><Store className="h-3 w-3" /> Assigned</span>
                   </div>
                 )}
                 
@@ -600,6 +619,22 @@ function Employees() {
                     <option value="cashier">Cashier</option>
                     <option value="manager">Manager</option>
                     <option value="admin">Admin</option>
+                  </select>
+                </div>
+
+                {/* Assigned Store */}
+                <div>
+                  <Label htmlFor="store">Assigned Store</Label>
+                  <select 
+                    id="store"
+                    className="mt-1 w-full h-10 rounded-md border border-border bg-input/30 px-3 text-sm"
+                    value={storeId}
+                    onChange={e => setStoreId(e.target.value)}
+                  >
+                    <option value="">No specific store (Headquarters)</option>
+                    {stores.map(store => (
+                      <option key={store.id} value={store.id}>{store.name}</option>
+                    ))}
                   </select>
                 </div>
 

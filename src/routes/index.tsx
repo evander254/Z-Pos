@@ -2,20 +2,25 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Check, Zap, ShieldCheck, Smartphone, BarChart3, ScanBarcode, CreditCard, Sun, Moon } from "lucide-react";
-import { BUSINESS_TYPES } from "@/lib/business-types";
+import { BUSINESS_TYPES, type BusinessTypeKey, BUSINESS_TYPE_MAP } from "@/lib/business-types";
 import { useTheme } from "@/lib/theme-context";
+import { useState } from "react";
 
 export const Route = createFileRoute("/")({ component: Landing });
 
 function Landing() {
+  const [activeIndustry, setActiveIndustry] = useState<BusinessTypeKey>("supermarket");
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Nav />
-      <Hero />
+      <Hero activeIndustry={activeIndustry} />
       <Logos />
-      <BusinessGrid />
+      <BusinessGrid activeIndustry={activeIndustry} setActiveIndustry={setActiveIndustry} />
       <Features />
+      <WaveDivider className="bg-background" fill="fill-background" />
       <PreviewBlock />
+      <WaveDivider className="rotate-180 bg-background" fill="fill-background" />
       <Pricing />
       <FAQ />
       <CTA />
@@ -27,7 +32,7 @@ function Landing() {
 function Nav() {
   const { mode, setMode } = useTheme();
   return (
-    <header className="sticky top-0 z-40 backdrop-blur-xl bg-background/60 border-b border-border/60">
+    <header className="sticky top-0 z-50 backdrop-blur-md bg-white/70 border-b border-slate-100 dark:bg-zinc-950/70 dark:border-zinc-800 transition-colors duration-300">
       <div className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-lg gradient-violet glow-violet" />
@@ -57,9 +62,9 @@ function Nav() {
   );
 }
 
-function Hero() {
+function Hero({ activeIndustry }: { activeIndustry: BusinessTypeKey }) {
   return (
-    <section className="relative overflow-hidden grid-bg">
+    <section className="relative overflow-hidden grid-bg animate-pattern pattern-dots">
       <div className="mx-auto max-w-7xl px-6 pt-20 pb-28 text-center">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
           <div className="inline-flex items-center gap-2 rounded-full glass px-3 py-1 text-xs text-muted-foreground">
@@ -87,25 +92,51 @@ function Hero() {
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.7 }}
-          className="mt-16 mx-auto max-w-5xl">
-          <div className="glass rounded-3xl p-2 glow-violet">
-            <div className="rounded-2xl bg-background/70 p-6 md:p-10 border border-border/60">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          className="mt-16 mx-auto max-w-5xl relative perspective-[1200px]">
+          <motion.div 
+            whileHover={{ rotateX: 5, rotateY: -5, scale: 1.02 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            className="glass rounded-3xl p-2 glow-violet transform-style-3d shadow-2xl relative"
+          >
+            <div className="rounded-2xl bg-white/50 dark:bg-zinc-950/50 backdrop-blur-md p-6 md:p-10 border border-slate-200/50 dark:border-zinc-800/50 overflow-hidden relative">
+              {/* Dynamic Industry Header */}
+              <div className="flex items-center gap-4 mb-8">
+                <div className="h-12 w-12 rounded-xl gradient-violet flex items-center justify-center text-white shadow-lg">
+                  {BUSINESS_TYPE_MAP[activeIndustry] && (() => {
+                    const Icon = BUSINESS_TYPE_MAP[activeIndustry].icon;
+                    return <Icon className="h-6 w-6" />;
+                  })()}
+                </div>
+                <div className="text-left">
+                  <div className="text-xl font-bold">{BUSINESS_TYPE_MAP[activeIndustry]?.label || "Dashboard"} Workspace</div>
+                  <div className="text-sm text-muted-foreground">{BUSINESS_TYPE_MAP[activeIndustry]?.tagline}</div>
+                </div>
+              </div>
+
+              {/* Dynamic KPI Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 relative z-10">
                 {[
-                  { label: "Today's Sales", value: "KES 184,250", delta: "+12%" },
-                  { label: "Transactions", value: "247", delta: "+8%" },
-                  { label: "Best Seller", value: "Coca-Cola 500ml", delta: "84 units" },
+                  { label: "Today's Revenue", value: "KES 184,250", delta: "+12.5%", color: "text-emerald-500" },
+                  { label: "Active Orders", value: "42", delta: "Processing", color: "text-amber-500" },
+                  { label: "System Status", value: "Online", delta: "All modules active", color: "text-blue-500" },
                 ].map((k) => (
-                  <div key={k.label} className="glass rounded-xl p-5 text-left">
-                    <div className="text-xs text-muted-foreground">{k.label}</div>
-                    <div className="mt-2 text-2xl font-semibold">{k.value}</div>
-                    <div className="mt-1 text-xs text-accent">{k.delta}</div>
+                  <div key={k.label} className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md rounded-xl p-5 text-left border border-slate-100 dark:border-zinc-800 shadow-sm transition-all hover:shadow-md">
+                    <div className="text-xs text-muted-foreground font-medium">{k.label}</div>
+                    <div className="mt-2 text-2xl font-bold tracking-tight">{k.value}</div>
+                    <div className={`mt-1 text-xs font-semibold ${k.color}`}>{k.delta}</div>
                   </div>
                 ))}
               </div>
-              <div className="mt-6 h-32 rounded-xl gradient-violet opacity-90" />
+
+              {/* Decorative dynamic elements */}
+              <div className="mt-6 h-48 rounded-xl bg-gradient-to-br from-violet-500/10 to-fuchsia-500/10 border border-violet-200/20 dark:border-violet-500/10 flex items-center justify-center relative overflow-hidden">
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+                <div className="text-violet-500/50 font-medium z-10 flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" /> Live Activity Stream
+                </div>
+              </div>
             </div>
-          </div>
+          </motion.div>
         </motion.div>
       </div>
     </section>
@@ -125,7 +156,7 @@ function Logos() {
   );
 }
 
-function BusinessGrid() {
+function BusinessGrid({ activeIndustry, setActiveIndustry }: { activeIndustry: BusinessTypeKey, setActiveIndustry: (i: BusinessTypeKey) => void }) {
   return (
     <section id="businesses" className="py-24">
       <div className="mx-auto max-w-7xl px-6">
@@ -134,34 +165,43 @@ function BusinessGrid() {
           <p className="mt-3 text-muted-foreground">Pick your business type during signup and we'll set up everything you need.</p>
         </div>
         <div className="mt-12 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {BUSINESS_TYPES.map((b, i) => (
-            <motion.div key={b.key}
-              initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-              transition={{ delay: i * 0.03 }}
-              className="group relative glass rounded-2xl p-5 overflow-hidden border border-border/60 hover:-translate-y-1 hover:border-primary/60 transition-all duration-300 min-h-[190px] flex flex-col justify-end">
-              
-              {/* Background Image */}
-              <img 
-                src={b.imageUrl} 
-                alt={b.label}
-                className="absolute inset-0 w-full h-full object-cover z-0 transition-transform duration-500 group-hover:scale-105"
-              />
-              
-              {/* Overlay Gradient */}
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/50 to-transparent z-10 pointer-events-none" />
-              
-              {/* Content */}
-              <div className="relative z-10 flex flex-col h-full justify-between items-start w-full">
-                <div className="h-10 w-10 rounded-lg bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center">
-                  <b.icon className="h-5 w-5 text-white" />
+          {BUSINESS_TYPES.map((b, i) => {
+            const isActive = activeIndustry === b.key;
+            return (
+              <motion.div key={b.key}
+                onMouseEnter={() => setActiveIndustry(b.key)}
+                onClick={() => setActiveIndustry(b.key)}
+                initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+                transition={{ delay: i * 0.03 }}
+                className={`group relative glass rounded-2xl p-5 overflow-hidden border transition-all duration-300 min-h-[190px] flex flex-col justify-end cursor-pointer ${
+                  isActive 
+                    ? "border-violet-500 shadow-[0_0_20px_rgba(139,92,246,0.3)] -translate-y-2" 
+                    : "border-border/60 hover:-translate-y-1 hover:border-violet-400/50"
+                }`}>
+                
+                {/* Background Image */}
+                <img 
+                  src={b.imageUrl} 
+                  alt={b.label}
+                  className={`absolute inset-0 w-full h-full object-cover z-0 transition-transform duration-700 ${isActive ? "scale-110" : "group-hover:scale-105"}`}
+                />
+                
+                {/* Overlay Gradient */}
+                <div className={`absolute inset-0 z-10 pointer-events-none transition-colors duration-300 ${isActive ? "bg-gradient-to-t from-violet-950/95 via-slate-900/60 to-transparent" : "bg-gradient-to-t from-slate-900/90 via-slate-900/50 to-transparent"}`} />
+                
+                {/* Content */}
+                <div className="relative z-10 flex flex-col h-full justify-between items-start w-full">
+                  <div className={`h-10 w-10 rounded-lg backdrop-blur-md border flex items-center justify-center transition-colors duration-300 ${isActive ? "bg-violet-500/20 border-violet-400/50" : "bg-white/10 border-white/20"}`}>
+                    <b.icon className={`h-5 w-5 transition-colors ${isActive ? "text-violet-200" : "text-white"}`} />
+                  </div>
+                  <div className="mt-4 w-full">
+                    <div className={`font-bold text-base leading-snug transition-colors ${isActive ? "text-white" : "text-slate-100"}`}>{b.label}</div>
+                    <div className="text-xs text-slate-300 mt-1 line-clamp-2">{b.tagline}</div>
+                  </div>
                 </div>
-                <div className="mt-4 w-full">
-                  <div className="font-bold text-white text-base leading-snug">{b.label}</div>
-                  <div className="text-xs text-slate-200 mt-1 line-clamp-2">{b.tagline}</div>
-                </div>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            );
+          })}
         </div>
       </div>
     </section>
@@ -170,12 +210,12 @@ function BusinessGrid() {
 
 function Features() {
   const items = [
-    { icon: ScanBarcode, t: "Smart Checkout", d: "Barcode + camera scanning, holds, refunds, discounts and printable receipts." },
-    { icon: CreditCard, t: "M-Pesa, Card & Cash", d: "Accept every payment your customers use. Reconcile instantly." },
-    { icon: BarChart3, t: "Real-time analytics", d: "Sales heatmaps, best sellers, profit estimates and employee performance." },
-    { icon: Smartphone, t: "Mobile-first POS", d: "Run your shop from any phone, tablet or touchscreen device." },
-    { icon: ShieldCheck, t: "Tenant-isolated", d: "Row-level security and per-business workspaces keep your data yours." },
-    { icon: Zap, t: "AI assistant", d: "Predict low stock, get smart sales insights and business recommendations." },
+    { icon: ScanBarcode, t: "Smart Checkout", d: "Barcode + camera scanning, holds, refunds, discounts and printable receipts.", color: "text-blue-500", bg: "bg-blue-500/10" },
+    { icon: CreditCard, t: "M-Pesa, Card & Cash", d: "Accept every payment your customers use. Reconcile instantly.", color: "text-emerald-500", bg: "bg-emerald-500/10" },
+    { icon: BarChart3, t: "Real-time analytics", d: "Sales heatmaps, best sellers, profit estimates and employee performance.", color: "text-fuchsia-500", bg: "bg-fuchsia-500/10" },
+    { icon: Smartphone, t: "Mobile-first POS", d: "Run your shop from any phone, tablet or touchscreen device.", color: "text-amber-500", bg: "bg-amber-500/10" },
+    { icon: ShieldCheck, t: "Tenant-isolated", d: "Row-level security and per-business workspaces keep your data yours.", color: "text-rose-500", bg: "bg-rose-500/10" },
+    { icon: Zap, t: "AI assistant", d: "Predict low stock, get smart sales insights and business recommendations.", color: "text-violet-500", bg: "bg-violet-500/10" },
   ];
   return (
     <section id="features" className="py-24 grid-bg">
@@ -186,10 +226,24 @@ function Features() {
         </div>
         <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {items.map((f) => (
-            <div key={f.t} className="glass rounded-2xl p-6">
-              <f.icon className="h-6 w-6 text-accent" />
-              <div className="mt-4 font-semibold">{f.t}</div>
-              <div className="mt-1 text-sm text-muted-foreground">{f.d}</div>
+            <div key={f.t} className="group perspective-1000 h-[200px]">
+              <div className="relative w-full h-full transition-transform duration-700 transform-style-3d flip-card-inner">
+                {/* Front */}
+                <div className="absolute inset-0 backface-hidden glass rounded-2xl p-6 flex flex-col items-center justify-center text-center shadow-sm">
+                  <div className={`h-16 w-16 rounded-full flex items-center justify-center ${f.bg} mb-4`}>
+                    <f.icon className={`h-8 w-8 ${f.color}`} />
+                  </div>
+                  <div className="font-semibold text-lg">{f.t}</div>
+                </div>
+                {/* Back */}
+                <div className="absolute inset-0 backface-hidden rotate-y-180 glass rounded-2xl p-6 flex flex-col justify-center border-violet-200/50 dark:border-violet-500/30 shadow-xl bg-violet-50/80 dark:bg-violet-950/40 backdrop-blur-md">
+                  <div className="font-semibold text-lg mb-2 text-violet-700 dark:text-violet-400">{f.t}</div>
+                  <div className="text-sm text-muted-foreground leading-relaxed">{f.d}</div>
+                  <div className="mt-4 text-xs font-bold text-violet-600 dark:text-violet-300 uppercase tracking-wider flex items-center gap-1">
+                    Explore feature <ArrowRight className="h-3 w-3" />
+                  </div>
+                </div>
+              </div>
             </div>
           ))}
         </div>
@@ -204,27 +258,65 @@ function PreviewBlock() {
       <div className="mx-auto max-w-7xl px-6 grid md:grid-cols-2 gap-12 items-center">
         <div>
           <h2 className="text-3xl md:text-4xl font-bold">A POS that feels like an app, not a spreadsheet.</h2>
-          <p className="mt-4 text-muted-foreground">Touchscreen-optimised checkout, gorgeous dashboards and dark mode by default. Designed to look great on the till, on the manager's tablet and on the owner's phone.</p>
-          <ul className="mt-6 space-y-3 text-sm">
+          <p className="mt-4 text-muted-foreground text-lg">Touchscreen-optimised checkout, gorgeous dashboards and dark mode by default. Designed to look great on the till, on the manager's tablet and on the owner's phone.</p>
+          <ul className="mt-8 space-y-4 text-base">
             {["Camera barcode scanning", "USB scanners supported", "Offline cart with sync", "Keyboard shortcuts for cashiers", "Multi-language ready"].map(t => (
-              <li key={t} className="flex items-center gap-2"><Check className="h-4 w-4 text-accent" /> {t}</li>
+              <li key={t} className="flex items-center gap-3">
+                <div className="flex-shrink-0 h-6 w-6 rounded-full bg-violet-100 dark:bg-violet-500/20 flex items-center justify-center">
+                  <Check className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400 font-bold" strokeWidth={3} />
+                </div>
+                <span className="font-medium">{t}</span>
+              </li>
             ))}
           </ul>
         </div>
-        <div className="glass rounded-3xl p-2 glow-violet">
-          <div className="rounded-2xl bg-background/70 p-6 border border-border/60">
+        <div className="glass rounded-3xl p-2 glow-violet shadow-2xl relative perspective-[1000px]">
+          <div className="rounded-2xl bg-slate-50 dark:bg-zinc-950 p-6 border border-border/60 overflow-hidden transform-style-3d hover:rotate-y-[-2deg] hover:rotate-x-[2deg] transition-transform duration-500">
+            {/* Retail Till Mockup Header */}
+            <div className="flex justify-between items-center mb-4">
+              <div className="font-semibold text-lg">Current Order</div>
+              <div className="px-2 py-1 bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 text-xs font-bold rounded">TILL-04</div>
+            </div>
+            
+            {/* Product Grid Mockup */}
             <div className="grid grid-cols-3 gap-3">
-              {Array.from({ length: 9 }).map((_, i) => (
-                <div key={i} className="aspect-square rounded-xl bg-muted/60 flex items-end p-3 hover:bg-muted">
-                  <div className="text-xs">Item {i + 1}</div>
+              {[
+                { name: "Avocado", price: "45", img: "https://images.unsplash.com/photo-1523049673857-eb18f1d7b578?auto=format&fit=crop&q=80&w=200", stock: 12 },
+                { name: "Coffee Beans", price: "850", img: "https://images.unsplash.com/photo-1559525839-b184a4d698c7?auto=format&fit=crop&q=80&w=200", stock: 5 },
+                { name: "Milk 1L", price: "120", img: "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&q=80&w=200", stock: 24 },
+                { name: "Artisan Bread", price: "200", img: "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=200", stock: 8 },
+                { name: "Tomatoes", price: "30", img: "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&q=80&w=200", stock: 45 },
+                { name: "Honey 500g", price: "600", img: "https://images.unsplash.com/photo-1587049352847-4d4b12736b51?auto=format&fit=crop&q=80&w=200", stock: 2 },
+              ].map((item, i) => (
+                <div key={i} className="aspect-square rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 flex flex-col p-2 hover:border-violet-400 cursor-pointer transition-colors shadow-sm relative overflow-hidden group">
+                  <div className="absolute top-1 right-1 bg-white/90 dark:bg-black/90 backdrop-blur-sm text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm z-10">{item.stock} left</div>
+                  <div className="h-1/2 w-full rounded-md overflow-hidden mb-1 relative">
+                    <img src={item.img} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                  </div>
+                  <div className="text-[10px] sm:text-xs font-medium leading-tight truncate mt-auto">{item.name}</div>
+                  <div className="text-[10px] sm:text-xs font-bold text-violet-600 dark:text-violet-400">KES {item.price}</div>
                 </div>
               ))}
             </div>
-            <div className="mt-5 flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">Cart total</div>
-              <div className="text-xl font-semibold">KES 1,250</div>
+            
+            {/* Mockup Checkout Area */}
+            <div className="mt-5 pt-4 border-t border-slate-200 dark:border-zinc-800">
+              <div className="flex items-center justify-between mb-1">
+                <div className="text-sm text-muted-foreground">Subtotal</div>
+                <div className="text-sm font-medium">KES 1,845</div>
+              </div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-sm text-muted-foreground">Tax (16%)</div>
+                <div className="text-sm font-medium">KES 295</div>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="text-base font-bold">Total</div>
+                <div className="text-2xl font-bold text-violet-600 dark:text-violet-400">KES 2,140</div>
+              </div>
             </div>
-            <button className="mt-4 w-full h-12 rounded-xl gradient-violet text-white font-medium">Pay with M-Pesa</button>
+            <button className="mt-4 w-full h-14 rounded-xl gradient-violet text-white font-bold text-lg shadow-lg hover:shadow-xl hover:opacity-95 transition-all flex items-center justify-center gap-2">
+              <CreditCard className="h-5 w-5" /> Pay with M-Pesa
+            </button>
           </div>
         </div>
       </div>
@@ -246,22 +338,33 @@ function Pricing() {
           <h2 className="text-3xl md:text-4xl font-bold">Simple pricing for every business</h2>
           <p className="mt-3 text-muted-foreground">Start free. Upgrade when you're ready.</p>
         </div>
-        <div className="mt-12 grid md:grid-cols-3 gap-5">
+        <div className="mt-12 grid md:grid-cols-3 gap-5 md:gap-8 items-center max-w-5xl mx-auto">
           {PLANS.map(p => (
-            <div key={p.name} className={`rounded-2xl p-6 ${p.featured ? "glass glow-violet border-primary/40" : "glass"}`}>
-              <div className="text-sm text-muted-foreground">{p.name}</div>
-              <div className="mt-2 flex items-baseline gap-1">
-                <div className="text-3xl font-bold">{p.price}</div>
-                <div className="text-sm text-muted-foreground">{p.per}</div>
+            <div key={p.name} className={`relative rounded-2xl p-8 transition-transform ${p.featured ? "glass md:scale-105 border-violet-500/50 shadow-[0_0_30px_rgba(139,92,246,0.15)] bg-gradient-to-b from-violet-500/5 to-transparent z-10" : "glass"}`}>
+              {p.featured && (
+                <div className="absolute -top-4 left-0 right-0 flex justify-center">
+                  <span className="bg-violet-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-lg">Most Popular</span>
+                </div>
+              )}
+              <div className="text-sm font-semibold text-violet-500 uppercase tracking-wider">{p.name}</div>
+              <div className="mt-4 flex items-baseline gap-1">
+                <div className="text-4xl font-bold">{p.price}</div>
+                <div className="text-sm text-muted-foreground font-medium">{p.per}</div>
               </div>
-              <div className="mt-2 text-sm text-muted-foreground">{p.desc}</div>
-              <ul className="mt-5 space-y-2 text-sm">
+              <div className="mt-3 text-sm text-muted-foreground">{p.desc}</div>
+              <div className="my-6 h-px w-full bg-border/60" />
+              <ul className="space-y-3 text-sm">
                 {p.features.map(f => (
-                  <li key={f} className="flex items-center gap-2"><Check className="h-4 w-4 text-accent" /> {f}</li>
+                  <li key={f} className="flex items-center gap-3">
+                    <div className="flex-shrink-0 h-5 w-5 rounded-full bg-violet-100 dark:bg-violet-500/20 flex items-center justify-center">
+                      <Check className="h-3 w-3 text-violet-600 dark:text-violet-400 font-bold" strokeWidth={3} />
+                    </div>
+                    <span className="font-medium text-foreground">{f}</span>
+                  </li>
                 ))}
               </ul>
               <Link to="/auth/signup">
-                <Button className={`mt-6 w-full ${p.featured ? "gradient-violet text-white border-0" : ""}`} variant={p.featured ? "default" : "outline"}>
+                <Button className={`mt-8 w-full h-12 font-semibold ${p.featured ? "gradient-violet text-white border-0 shadow-lg hover:opacity-90 hover:shadow-xl transition-all" : "border-2"}`} variant={p.featured ? "default" : "outline"}>
                   Get started
                 </Button>
               </Link>
@@ -330,5 +433,15 @@ function Footer() {
         </div>
       </div>
     </footer>
+  );
+}
+
+function WaveDivider({ className = "", fill = "fill-background" }: { className?: string, fill?: string }) {
+  return (
+    <div className={`w-full overflow-hidden leading-[0] ${className}`}>
+      <svg className="relative block w-[calc(100%+1.3px)] h-[40px] md:h-[60px]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
+        <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z" className={fill}></path>
+      </svg>
+    </div>
   );
 }

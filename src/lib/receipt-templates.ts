@@ -20,6 +20,32 @@ export function generateReceiptHTML(sale: any, business: any, templateType: stri
   const amountTendered = sale.amountTendered ?? sale.amount_tendered;
   const changeDue = sale.changeDue ?? sale.change_due;
 
+  // Customer Loyalty
+  const customerName = sale.customerName || sale.customer_name;
+  const initialPoints = sale.initialPoints;
+  const pointsAwarded = sale.pointsAwarded;
+  const totalPoints = (initialPoints !== undefined && pointsAwarded !== undefined) ? initialPoints + pointsAwarded : undefined;
+
+  const compactLoyaltyHtml = customerName ? `
+    <div class="div"></div>
+    <div class="c b" style="font-size: 9px;">CUSTOMER REWARDS</div>
+    <div>${customerName}</div>
+    ${pointsAwarded !== undefined ? `
+    <div class="row"><span>Earned:</span><span>${pointsAwarded} pts</span></div>
+    <div class="row"><span>Total:</span><span>${totalPoints} pts</span></div>
+    ` : ""}
+  ` : "";
+
+  const standardLoyaltyHtml = customerName ? `
+    <div class="divider"></div>
+    <div class="text-center bold">CUSTOMER REWARDS</div>
+    <div><b>Name:</b> ${customerName}</div>
+    ${pointsAwarded !== undefined ? `
+    <div><b>Points Earned:</b> ${pointsAwarded}</div>
+    <div><b>Total Points:</b> ${totalPoints}</div>
+    ` : ""}
+  ` : "";
+
   // Shared Fragments
   const items = sale.items || sale.sale_items || [];
   
@@ -90,6 +116,7 @@ export function generateReceiptHTML(sale: any, business: any, templateType: stri
             <div class="row" style="margin-top:4px;"><span>TND:</span><span>${formatMoney(amountTendered, currency)}</span></div>
             <div class="row"><span>CHG:</span><span>${formatMoney(Math.abs(changeDue || 0), currency)}</span></div>
           ` : ""}
+          ${compactLoyaltyHtml}
           <div class="div"></div>
           <div class="c" style="font-size: 9px;">Thank you!</div>
         </body>
@@ -138,6 +165,13 @@ export function generateReceiptHTML(sale: any, business: any, templateType: stri
               <b>Payment Method:</b><br/>
               ${displayPayment} ${mpesaRef ? `(Ref: ${mpesaRef})` : ""}
             </div>
+            ${customerName ? `
+            <div>
+              <b>Customer Loyalty:</b><br/>
+              ${customerName}<br/>
+              ${pointsAwarded !== undefined ? `Points Earned: ${pointsAwarded} (Total: ${totalPoints})` : ""}
+            </div>
+            ` : ""}
           </div>
 
           <table>
@@ -212,6 +246,17 @@ export function generateReceiptHTML(sale: any, business: any, templateType: stri
               <div class="row bold" style="font-size:18px; border-top:2px solid #e4e4e7; padding-top:15px; margin-top:5px;">
                 <span>Total Paid</span><span>${formatMoney(total, currency)}</span>
               </div>
+              
+              ${customerName ? `
+              <div class="items" style="background: #f0fdf4; border: 1px solid #bbf7d0;">
+                <div style="font-size:12px; font-weight:bold; color:#166534; margin-bottom:5px; text-transform:uppercase;">Customer Rewards</div>
+                <div class="item"><span style="color:#166534;">Customer Name</span><span class="bold" style="color:#166534;">${customerName}</span></div>
+                ${pointsAwarded !== undefined ? `
+                <div class="item"><span style="color:#166534;">Points Earned</span><span class="bold" style="color:#166534;">+${pointsAwarded}</span></div>
+                <div class="item"><span style="color:#166534;">Total Points</span><span class="bold" style="color:#166534;">${totalPoints}</span></div>
+                ` : ""}
+              </div>
+              ` : ""}
             </div>
             <div class="footer">Thanks for shopping with us!</div>
           </div>
@@ -357,6 +402,7 @@ export function generateReceiptHTML(sale: any, business: any, templateType: stri
             <div class="item-row"><span>CASH TENDERED:</span><span>${formatMoney(amountTendered, currency)}</span></div>
             <div class="item-row"><span>${changeDue !== undefined && changeDue >= 0 ? "CHANGE DUE:" : "OUTSTANDING:"}</span><span>${formatMoney(Math.abs(changeDue || 0), currency)}</span></div>
           ` : ""}
+          ${standardLoyaltyHtml}
           <div class="divider"></div>
           <div class="text-center" style="margin-top: 15px; font-size: 10px;">
             Thank you for shopping with us!<br/>

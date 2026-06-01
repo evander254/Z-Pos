@@ -220,4 +220,32 @@
     background-color: var(--background) !important;
     background-image: none !important;
   }
+
+  /* Flip Card Utilities */
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+  .transform-style-3d {
+    transform-style: preserve-3d;
+  }
+  .backface-hidden {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+  .rotate-y-180 {
+    transform: rotateY(180deg);
+  }
+
+  /* Animated Pattern */
+  .pattern-dots {
+    background-image: radial-gradient(var(--border) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+  @keyframes panPattern {
+    0% { background-position: 0px 0px; }
+    100% { background-position: 24px 24px; }
+  }
+  .animate-pattern {
+    animation: panPattern 2s linear infinite;
+  }
 }

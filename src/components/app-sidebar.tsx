@@ -1,5 +1,7 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, ScanBarcode, Package, Users, Receipt, UserCog, Settings, LogOut, Sun, Moon, TrendingUp, Truck, BookOpenCheck } from "lucide-react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { LayoutDashboard, ScanBarcode, Package, Users, Receipt, UserCog, Settings, LogOut, Sun, Moon, TrendingUp, Truck, BookOpenCheck, Store, Bell } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useTenant } from "@/lib/tenant-context";
 import { BUSINESS_TYPE_MAP } from "@/lib/business-types";
@@ -8,6 +10,43 @@ import { useTheme, type ThemeColor } from "@/lib/theme-context";
 interface SidebarContentProps {
   slug: string;
   onClose?: () => void;
+}
+
+function NotificationBell({ businessId, slug }: { businessId: string; slug: string }) {
+  const [unreadCount, setUnreadCount] = useState(0);
+  const nav = useNavigate();
+  
+  useEffect(() => {
+    if (!businessId) return;
+    const fetchCount = async () => {
+      const { count } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('business_id', businessId)
+        .eq('is_read', false);
+      setUnreadCount(count || 0);
+    };
+    fetchCount();
+    
+    const channel = supabase.channel('notifications_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `business_id=eq.${businessId}` }, () => {
+        fetchCount();
+      }).subscribe();
+      
+    return () => { supabase.removeChannel(channel); };
+  }, [businessId]);
+
+  return (
+    <button onClick={() => nav({ to: `/t/${slug}/notifications` })} className="relative p-2 rounded-md hover:bg-sidebar-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer ml-auto">
+      <Bell className="h-4 w-4" />
+      {unreadCount > 0 && (
+        <span className="absolute top-1.5 right-1.5 flex h-2 w-2">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+        </span>
+      )}
+    </button>
+  );
 }
 
 export function SidebarContent({ slug, onClose }: SidebarContentProps) {
@@ -27,6 +66,7 @@ export function SidebarContent({ slug, onClose }: SidebarContentProps) {
     { to: `/t/${slug}/suppliers`, label: "Suppliers", icon: Truck },
     { to: `/t/${slug}/credit-ledger`, label: "Credit Ledger", icon: BookOpenCheck },
     { to: `/t/${slug}/customers`, label: "Customers", icon: Users },
+    { to: `/t/${slug}/stores`, label: "Stores", icon: Store },
     { to: `/t/$slug/employees`, label: "Employees", icon: UserCog },
     { to: `/t/${slug}/receipts`, label: "Receipt Templates", icon: Receipt },
     { to: `/t/${slug}/settings`, label: "Settings", icon: Settings },
@@ -69,6 +109,7 @@ export function SidebarContent({ slug, onClose }: SidebarContentProps) {
             </span>
           </div>
         </div>
+        {business && <NotificationBell businessId={business.id} slug={slug} />}
       </div>
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {resolvedItems.map(it => {

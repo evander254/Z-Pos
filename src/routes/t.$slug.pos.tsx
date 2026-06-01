@@ -24,6 +24,7 @@ type Product = {
   image_url: string | null;
 };
 type CartItem = Product & { qty: number };
+type Customer = { id: string; full_name: string; phone: string | null; loyalty_points: number | null; };
 
 type LastSaleDetails = {
   id: string;
@@ -36,6 +37,9 @@ type LastSaleDetails = {
   changeDue?: number;
   items: { name: string; qty: number; price: number }[];
   created_at: string;
+  customerName?: string;
+  initialPoints?: number;
+  pointsAwarded?: number;
 };
 
 function POS() {
@@ -57,6 +61,13 @@ function POS() {
   const [showCardModal, setShowCardModal] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [lastSaleDetails, setLastSaleDetails] = useState<LastSaleDetails | null>(null);
+
+  // Customer & Loyalty States
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [showCustomerPrompt, setShowCustomerPrompt] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [promptCompleted, setPromptCompleted] = useState(false);
 
   // Camera Barcode Scanner integration handled via hook
 
@@ -81,8 +92,17 @@ function POS() {
       .then(({ data }) => setProducts((data || []) as Product[]));
   }
 
+  function loadCustomers() {
+    if (!business) return;
+    supabase.from("customers")
+      .select("id, full_name, phone, loyalty_points")
+      .eq("business_id", business.id)
+      .then(({ data }) => setCustomers((data || []) as Customer[]));
+  }
+
   useEffect(() => {
     loadProducts();
+    loadCustomers();
   }, [business]);
 
   // Reset page when search changes
@@ -175,6 +195,11 @@ function POS() {
   };
 
   function handleCharge() {
+    if (!promptCompleted) {
+      setShowCustomerPrompt(true);
+      return;
+    }
+
     if (payment === "cash") {
       if (amountTendered && parsedTendered > 0) {
         performCheckout({ cashReceived: parsedTendered });
@@ -221,10 +246,15 @@ function POS() {
 
     const storedPaymentMethod = cashierName ? `${displayPayment}::${cashierName}` : displayPayment;
 
+    const pointsAwarded = Math.floor(total / 100);
+    const initialPoints = selectedCustomer?.loyalty_points || 0;
+
     const { data: sale, error } = await (supabase.from("sales") as any).insert({
       business_id: business.id, 
+      store_id: (employee as any)?.store_id || null,
       cashier_id: cashierId,
       cashier_name: cashierName,
+      customer_id: selectedCustomer?.id || null,
       subtotal, 
       tax_amount: tax, 
       total_amount: total,
@@ -265,6 +295,12 @@ function POS() {
       });
     }
 
+    if (selectedCustomer) {
+      await supabase.from("customers").update({
+        loyalty_points: initialPoints + pointsAwarded
+      }).eq("id", selectedCustomer.id);
+    }
+
     const calculatedChange = options?.cashReceived !== undefined ? options.cashReceived - total : 0;
     setLastSaleDetails({
       id: sale.id,
@@ -277,6 +313,9 @@ function POS() {
       changeDue: options?.cashReceived !== undefined ? calculatedChange : undefined,
       items: savedCart.map(i => ({ name: i.name, qty: i.qty, price: i.price })),
       created_at: sale.created_at || new Date().toISOString(),
+      customerName: selectedCustomer?.full_name || undefined,
+      initialPoints: selectedCustomer ? initialPoints : undefined,
+      pointsAwarded: selectedCustomer ? pointsAwarded : undefined,
     });
 
     toast.success(`Sale completed: ${formatMoney(total, currency)}`);
@@ -290,8 +329,13 @@ function POS() {
     setMpesaConfirmed(false);
     setShowReceiptModal(true);
 
-    // refresh products
+    setSelectedCustomer(null);
+    setPromptCompleted(false);
+    setCustomerSearch("");
+
+    // refresh products and customers
     loadProducts();
+    loadCustomers();
   }
 
   function printReceipt() {
@@ -390,6 +434,15 @@ function POS() {
         <div className="p-5 border-b border-border">
           <div className="text-sm font-medium">Current sale</div>
           <div className="text-xs text-muted-foreground">{cart.length} item{cart.length !== 1 ? "s" : ""}</div>
+          {selectedCustomer && (
+            <div className="mt-3 flex flex-col gap-1 bg-violet-500/10 text-violet-700 dark:text-violet-400 p-2 rounded-lg border border-violet-500/20 text-xs">
+              <div className="flex justify-between items-center font-semibold">
+                <span>{selectedCustomer.full_name}</span>
+                <button onClick={() => { setSelectedCustomer(null); setPromptCompleted(false); }} className="hover:underline cursor-pointer">Remove</button>
+              </div>
+              <div>Loyalty Points: {selectedCustomer.loyalty_points || 0}</div>
+            </div>
+          )}
         </div>
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
           {cart.length === 0 && <div className="text-center text-sm text-muted-foreground py-10">Tap a product to add</div>}
@@ -896,6 +949,76 @@ function POS() {
               >
                 New Sale
               </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal - Customer Prompt */}
+      {showCustomerPrompt && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-card w-full max-w-md rounded-2xl border border-border shadow-2xl p-6 relative max-h-[90vh] overflow-y-auto flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">Assign Customer</h2>
+              <button onClick={() => setShowCustomerPrompt(false)} className="text-muted-foreground hover:text-foreground cursor-pointer">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <Button
+                variant="outline"
+                className="w-full h-12 justify-center font-medium cursor-pointer"
+                onClick={() => {
+                  setSelectedCustomer(null);
+                  setPromptCompleted(true);
+                  setShowCustomerPrompt(false);
+                  setTimeout(handleCharge, 0);
+                }}
+              >
+                Checkout as Guest
+              </Button>
+              <div className="relative py-2">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-border" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">Or Search Customer</span>
+                </div>
+              </div>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  className="pl-9 h-12"
+                  placeholder="Search by name or phone..."
+                  value={customerSearch}
+                  onChange={(e) => setCustomerSearch(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              <div className="max-h-48 overflow-y-auto space-y-2 rounded-xl p-1">
+                {customers.filter(c => c.full_name?.toLowerCase().includes(customerSearch.toLowerCase()) || (c.phone && c.phone.includes(customerSearch))).length === 0 ? (
+                  <div className="text-center text-sm text-muted-foreground py-4 border border-border rounded-lg bg-muted/20">No customers found</div>
+                ) : (
+                  customers.filter(c => c.full_name?.toLowerCase().includes(customerSearch.toLowerCase()) || (c.phone && c.phone.includes(customerSearch))).map(c => (
+                    <button
+                      key={c.id}
+                      onClick={() => {
+                        setSelectedCustomer(c);
+                        setPromptCompleted(true);
+                        setShowCustomerPrompt(false);
+                        setTimeout(handleCharge, 0);
+                      }}
+                      className="w-full text-left p-3 rounded-lg bg-muted/30 hover:bg-muted border border-border transition-colors flex justify-between items-center cursor-pointer"
+                    >
+                      <div>
+                        <div className="font-semibold text-sm">{c.full_name}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">{c.phone || "No phone"}</div>
+                      </div>
+                      <div className="text-xs font-bold text-violet-600 dark:text-violet-400 bg-violet-500/10 px-2 py-1 rounded-md">Pts: {c.loyalty_points || 0}</div>
+                    </button>
+                  ))
+                )}
+              </div>
             </div>
           </div>
         </div>
