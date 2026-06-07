@@ -48,8 +48,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       signOut: async () => {
         if (typeof window !== 'undefined') {
+          const sessionId = localStorage.getItem("zpos-employee-login-session-id");
+          if (sessionId) {
+            try {
+              await supabase.rpc("end_employee_login_session" as any, { p_session_id: sessionId });
+            } catch (err) {
+              console.warn("Failed to end employee login session:", err);
+            }
+          }
           localStorage.removeItem("zpos-mock-user");
           localStorage.removeItem("zpos-mock-employee");
+          localStorage.removeItem("zpos-employee-login-session-id");
         }
         setMockUser(null);
         await supabase.auth.signOut();

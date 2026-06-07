@@ -21,14 +21,20 @@ import { Route as TSlugSuppliersRouteImport } from './routes/t.$slug.suppliers'
 import { Route as TSlugStoresRouteImport } from './routes/t.$slug.stores'
 import { Route as TSlugSettingsRouteImport } from './routes/t.$slug.settings'
 import { Route as TSlugSalesRouteImport } from './routes/t.$slug.sales'
+import { Route as TSlugRolesPermissionsRouteImport } from './routes/t.$slug.roles-permissions'
 import { Route as TSlugReceiptsRouteImport } from './routes/t.$slug.receipts'
-import { Route as TSlugProductsRouteImport } from './routes/t.$slug.products'
+import { Route as TSlugPurchaseOrdersRouteImport } from './routes/t.$slug.purchase-orders'
 import { Route as TSlugPosRouteImport } from './routes/t.$slug.pos'
+import { Route as TSlugPackageRouteImport } from './routes/t.$slug.package'
+import { Route as TSlugOfflineModeRouteImport } from './routes/t.$slug.offline-mode'
 import { Route as TSlugNotificationsRouteImport } from './routes/t.$slug.notifications'
 import { Route as TSlugInsightsRouteImport } from './routes/t.$slug.insights'
 import { Route as TSlugEmployeesRouteImport } from './routes/t.$slug.employees'
 import { Route as TSlugCustomersRouteImport } from './routes/t.$slug.customers'
 import { Route as TSlugCreditLedgerRouteImport } from './routes/t.$slug.credit-ledger'
+import { Route as TSlugProductsIndexRouteImport } from './routes/t.$slug.products.index'
+import { Route as TSlugProductsStoreIdRouteImport } from './routes/t.$slug.products.$storeId'
+import { Route as TSlugFeaturesFeatureKeyRouteImport } from './routes/t.$slug.features.$featureKey'
 
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
@@ -90,19 +96,34 @@ const TSlugSalesRoute = TSlugSalesRouteImport.update({
   path: '/sales',
   getParentRoute: () => TSlugRoute,
 } as any)
+const TSlugRolesPermissionsRoute = TSlugRolesPermissionsRouteImport.update({
+  id: '/roles-permissions',
+  path: '/roles-permissions',
+  getParentRoute: () => TSlugRoute,
+} as any)
 const TSlugReceiptsRoute = TSlugReceiptsRouteImport.update({
   id: '/receipts',
   path: '/receipts',
   getParentRoute: () => TSlugRoute,
 } as any)
-const TSlugProductsRoute = TSlugProductsRouteImport.update({
-  id: '/products',
-  path: '/products',
+const TSlugPurchaseOrdersRoute = TSlugPurchaseOrdersRouteImport.update({
+  id: '/purchase-orders',
+  path: '/purchase-orders',
   getParentRoute: () => TSlugRoute,
 } as any)
 const TSlugPosRoute = TSlugPosRouteImport.update({
   id: '/pos',
   path: '/pos',
+  getParentRoute: () => TSlugRoute,
+} as any)
+const TSlugPackageRoute = TSlugPackageRouteImport.update({
+  id: '/package',
+  path: '/package',
+  getParentRoute: () => TSlugRoute,
+} as any)
+const TSlugOfflineModeRoute = TSlugOfflineModeRouteImport.update({
+  id: '/offline-mode',
+  path: '/offline-mode',
   getParentRoute: () => TSlugRoute,
 } as any)
 const TSlugNotificationsRoute = TSlugNotificationsRouteImport.update({
@@ -130,6 +151,21 @@ const TSlugCreditLedgerRoute = TSlugCreditLedgerRouteImport.update({
   path: '/credit-ledger',
   getParentRoute: () => TSlugRoute,
 } as any)
+const TSlugProductsIndexRoute = TSlugProductsIndexRouteImport.update({
+  id: '/products/',
+  path: '/products/',
+  getParentRoute: () => TSlugRoute,
+} as any)
+const TSlugProductsStoreIdRoute = TSlugProductsStoreIdRouteImport.update({
+  id: '/products/$storeId',
+  path: '/products/$storeId',
+  getParentRoute: () => TSlugRoute,
+} as any)
+const TSlugFeaturesFeatureKeyRoute = TSlugFeaturesFeatureKeyRouteImport.update({
+  id: '/features/$featureKey',
+  path: '/features/$featureKey',
+  getParentRoute: () => TSlugRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -144,14 +180,20 @@ export interface FileRoutesByFullPath {
   '/t/$slug/employees': typeof TSlugEmployeesRoute
   '/t/$slug/insights': typeof TSlugInsightsRoute
   '/t/$slug/notifications': typeof TSlugNotificationsRoute
+  '/t/$slug/offline-mode': typeof TSlugOfflineModeRoute
+  '/t/$slug/package': typeof TSlugPackageRoute
   '/t/$slug/pos': typeof TSlugPosRoute
-  '/t/$slug/products': typeof TSlugProductsRoute
+  '/t/$slug/purchase-orders': typeof TSlugPurchaseOrdersRoute
   '/t/$slug/receipts': typeof TSlugReceiptsRoute
+  '/t/$slug/roles-permissions': typeof TSlugRolesPermissionsRoute
   '/t/$slug/sales': typeof TSlugSalesRoute
   '/t/$slug/settings': typeof TSlugSettingsRoute
   '/t/$slug/stores': typeof TSlugStoresRoute
   '/t/$slug/suppliers': typeof TSlugSuppliersRoute
   '/t/$slug/': typeof TSlugIndexRoute
+  '/t/$slug/features/$featureKey': typeof TSlugFeaturesFeatureKeyRoute
+  '/t/$slug/products/$storeId': typeof TSlugProductsStoreIdRoute
+  '/t/$slug/products/': typeof TSlugProductsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -165,14 +207,20 @@ export interface FileRoutesByTo {
   '/t/$slug/employees': typeof TSlugEmployeesRoute
   '/t/$slug/insights': typeof TSlugInsightsRoute
   '/t/$slug/notifications': typeof TSlugNotificationsRoute
+  '/t/$slug/offline-mode': typeof TSlugOfflineModeRoute
+  '/t/$slug/package': typeof TSlugPackageRoute
   '/t/$slug/pos': typeof TSlugPosRoute
-  '/t/$slug/products': typeof TSlugProductsRoute
+  '/t/$slug/purchase-orders': typeof TSlugPurchaseOrdersRoute
   '/t/$slug/receipts': typeof TSlugReceiptsRoute
+  '/t/$slug/roles-permissions': typeof TSlugRolesPermissionsRoute
   '/t/$slug/sales': typeof TSlugSalesRoute
   '/t/$slug/settings': typeof TSlugSettingsRoute
   '/t/$slug/stores': typeof TSlugStoresRoute
   '/t/$slug/suppliers': typeof TSlugSuppliersRoute
   '/t/$slug': typeof TSlugIndexRoute
+  '/t/$slug/features/$featureKey': typeof TSlugFeaturesFeatureKeyRoute
+  '/t/$slug/products/$storeId': typeof TSlugProductsStoreIdRoute
+  '/t/$slug/products': typeof TSlugProductsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -188,14 +236,20 @@ export interface FileRoutesById {
   '/t/$slug/employees': typeof TSlugEmployeesRoute
   '/t/$slug/insights': typeof TSlugInsightsRoute
   '/t/$slug/notifications': typeof TSlugNotificationsRoute
+  '/t/$slug/offline-mode': typeof TSlugOfflineModeRoute
+  '/t/$slug/package': typeof TSlugPackageRoute
   '/t/$slug/pos': typeof TSlugPosRoute
-  '/t/$slug/products': typeof TSlugProductsRoute
+  '/t/$slug/purchase-orders': typeof TSlugPurchaseOrdersRoute
   '/t/$slug/receipts': typeof TSlugReceiptsRoute
+  '/t/$slug/roles-permissions': typeof TSlugRolesPermissionsRoute
   '/t/$slug/sales': typeof TSlugSalesRoute
   '/t/$slug/settings': typeof TSlugSettingsRoute
   '/t/$slug/stores': typeof TSlugStoresRoute
   '/t/$slug/suppliers': typeof TSlugSuppliersRoute
   '/t/$slug/': typeof TSlugIndexRoute
+  '/t/$slug/features/$featureKey': typeof TSlugFeaturesFeatureKeyRoute
+  '/t/$slug/products/$storeId': typeof TSlugProductsStoreIdRoute
+  '/t/$slug/products/': typeof TSlugProductsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -212,14 +266,20 @@ export interface FileRouteTypes {
     | '/t/$slug/employees'
     | '/t/$slug/insights'
     | '/t/$slug/notifications'
+    | '/t/$slug/offline-mode'
+    | '/t/$slug/package'
     | '/t/$slug/pos'
-    | '/t/$slug/products'
+    | '/t/$slug/purchase-orders'
     | '/t/$slug/receipts'
+    | '/t/$slug/roles-permissions'
     | '/t/$slug/sales'
     | '/t/$slug/settings'
     | '/t/$slug/stores'
     | '/t/$slug/suppliers'
     | '/t/$slug/'
+    | '/t/$slug/features/$featureKey'
+    | '/t/$slug/products/$storeId'
+    | '/t/$slug/products/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -233,14 +293,20 @@ export interface FileRouteTypes {
     | '/t/$slug/employees'
     | '/t/$slug/insights'
     | '/t/$slug/notifications'
+    | '/t/$slug/offline-mode'
+    | '/t/$slug/package'
     | '/t/$slug/pos'
-    | '/t/$slug/products'
+    | '/t/$slug/purchase-orders'
     | '/t/$slug/receipts'
+    | '/t/$slug/roles-permissions'
     | '/t/$slug/sales'
     | '/t/$slug/settings'
     | '/t/$slug/stores'
     | '/t/$slug/suppliers'
     | '/t/$slug'
+    | '/t/$slug/features/$featureKey'
+    | '/t/$slug/products/$storeId'
+    | '/t/$slug/products'
   id:
     | '__root__'
     | '/'
@@ -255,14 +321,20 @@ export interface FileRouteTypes {
     | '/t/$slug/employees'
     | '/t/$slug/insights'
     | '/t/$slug/notifications'
+    | '/t/$slug/offline-mode'
+    | '/t/$slug/package'
     | '/t/$slug/pos'
-    | '/t/$slug/products'
+    | '/t/$slug/purchase-orders'
     | '/t/$slug/receipts'
+    | '/t/$slug/roles-permissions'
     | '/t/$slug/sales'
     | '/t/$slug/settings'
     | '/t/$slug/stores'
     | '/t/$slug/suppliers'
     | '/t/$slug/'
+    | '/t/$slug/features/$featureKey'
+    | '/t/$slug/products/$storeId'
+    | '/t/$slug/products/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -361,6 +433,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TSlugSalesRouteImport
       parentRoute: typeof TSlugRoute
     }
+    '/t/$slug/roles-permissions': {
+      id: '/t/$slug/roles-permissions'
+      path: '/roles-permissions'
+      fullPath: '/t/$slug/roles-permissions'
+      preLoaderRoute: typeof TSlugRolesPermissionsRouteImport
+      parentRoute: typeof TSlugRoute
+    }
     '/t/$slug/receipts': {
       id: '/t/$slug/receipts'
       path: '/receipts'
@@ -368,11 +447,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TSlugReceiptsRouteImport
       parentRoute: typeof TSlugRoute
     }
-    '/t/$slug/products': {
-      id: '/t/$slug/products'
-      path: '/products'
-      fullPath: '/t/$slug/products'
-      preLoaderRoute: typeof TSlugProductsRouteImport
+    '/t/$slug/purchase-orders': {
+      id: '/t/$slug/purchase-orders'
+      path: '/purchase-orders'
+      fullPath: '/t/$slug/purchase-orders'
+      preLoaderRoute: typeof TSlugPurchaseOrdersRouteImport
       parentRoute: typeof TSlugRoute
     }
     '/t/$slug/pos': {
@@ -380,6 +459,20 @@ declare module '@tanstack/react-router' {
       path: '/pos'
       fullPath: '/t/$slug/pos'
       preLoaderRoute: typeof TSlugPosRouteImport
+      parentRoute: typeof TSlugRoute
+    }
+    '/t/$slug/package': {
+      id: '/t/$slug/package'
+      path: '/package'
+      fullPath: '/t/$slug/package'
+      preLoaderRoute: typeof TSlugPackageRouteImport
+      parentRoute: typeof TSlugRoute
+    }
+    '/t/$slug/offline-mode': {
+      id: '/t/$slug/offline-mode'
+      path: '/offline-mode'
+      fullPath: '/t/$slug/offline-mode'
+      preLoaderRoute: typeof TSlugOfflineModeRouteImport
       parentRoute: typeof TSlugRoute
     }
     '/t/$slug/notifications': {
@@ -417,6 +510,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TSlugCreditLedgerRouteImport
       parentRoute: typeof TSlugRoute
     }
+    '/t/$slug/products/': {
+      id: '/t/$slug/products/'
+      path: '/products'
+      fullPath: '/t/$slug/products/'
+      preLoaderRoute: typeof TSlugProductsIndexRouteImport
+      parentRoute: typeof TSlugRoute
+    }
+    '/t/$slug/products/$storeId': {
+      id: '/t/$slug/products/$storeId'
+      path: '/products/$storeId'
+      fullPath: '/t/$slug/products/$storeId'
+      preLoaderRoute: typeof TSlugProductsStoreIdRouteImport
+      parentRoute: typeof TSlugRoute
+    }
+    '/t/$slug/features/$featureKey': {
+      id: '/t/$slug/features/$featureKey'
+      path: '/features/$featureKey'
+      fullPath: '/t/$slug/features/$featureKey'
+      preLoaderRoute: typeof TSlugFeaturesFeatureKeyRouteImport
+      parentRoute: typeof TSlugRoute
+    }
   }
 }
 
@@ -426,14 +540,20 @@ interface TSlugRouteChildren {
   TSlugEmployeesRoute: typeof TSlugEmployeesRoute
   TSlugInsightsRoute: typeof TSlugInsightsRoute
   TSlugNotificationsRoute: typeof TSlugNotificationsRoute
+  TSlugOfflineModeRoute: typeof TSlugOfflineModeRoute
+  TSlugPackageRoute: typeof TSlugPackageRoute
   TSlugPosRoute: typeof TSlugPosRoute
-  TSlugProductsRoute: typeof TSlugProductsRoute
+  TSlugPurchaseOrdersRoute: typeof TSlugPurchaseOrdersRoute
   TSlugReceiptsRoute: typeof TSlugReceiptsRoute
+  TSlugRolesPermissionsRoute: typeof TSlugRolesPermissionsRoute
   TSlugSalesRoute: typeof TSlugSalesRoute
   TSlugSettingsRoute: typeof TSlugSettingsRoute
   TSlugStoresRoute: typeof TSlugStoresRoute
   TSlugSuppliersRoute: typeof TSlugSuppliersRoute
   TSlugIndexRoute: typeof TSlugIndexRoute
+  TSlugFeaturesFeatureKeyRoute: typeof TSlugFeaturesFeatureKeyRoute
+  TSlugProductsStoreIdRoute: typeof TSlugProductsStoreIdRoute
+  TSlugProductsIndexRoute: typeof TSlugProductsIndexRoute
 }
 
 const TSlugRouteChildren: TSlugRouteChildren = {
@@ -442,14 +562,20 @@ const TSlugRouteChildren: TSlugRouteChildren = {
   TSlugEmployeesRoute: TSlugEmployeesRoute,
   TSlugInsightsRoute: TSlugInsightsRoute,
   TSlugNotificationsRoute: TSlugNotificationsRoute,
+  TSlugOfflineModeRoute: TSlugOfflineModeRoute,
+  TSlugPackageRoute: TSlugPackageRoute,
   TSlugPosRoute: TSlugPosRoute,
-  TSlugProductsRoute: TSlugProductsRoute,
+  TSlugPurchaseOrdersRoute: TSlugPurchaseOrdersRoute,
   TSlugReceiptsRoute: TSlugReceiptsRoute,
+  TSlugRolesPermissionsRoute: TSlugRolesPermissionsRoute,
   TSlugSalesRoute: TSlugSalesRoute,
   TSlugSettingsRoute: TSlugSettingsRoute,
   TSlugStoresRoute: TSlugStoresRoute,
   TSlugSuppliersRoute: TSlugSuppliersRoute,
   TSlugIndexRoute: TSlugIndexRoute,
+  TSlugFeaturesFeatureKeyRoute: TSlugFeaturesFeatureKeyRoute,
+  TSlugProductsStoreIdRoute: TSlugProductsStoreIdRoute,
+  TSlugProductsIndexRoute: TSlugProductsIndexRoute,
 }
 
 const TSlugRouteWithChildren = TSlugRoute._addFileChildren(TSlugRouteChildren)

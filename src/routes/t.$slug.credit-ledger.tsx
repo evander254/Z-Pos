@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/lib/tenant-context";
 import { formatMoney } from "@/lib/format";
-import { BookOpenCheck, MessageCircle, Banknote, Search, Plus, X, Loader2 } from "lucide-react";
+import { BookOpenCheck, MessageCircle, Banknote, Search, Plus, X, Loader2, Users, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { useBusinessRealtime } from "@/lib/use-business-realtime";
 
 export const Route = createFileRoute("/t/$slug/credit-ledger")({ component: CreditLedgerDashboard });
 
@@ -79,10 +80,14 @@ function CreditLedgerDashboard() {
     loadData();
   }, [business]);
 
+  useBusinessRealtime(business?.id, ["credit_ledger", "customers", "sales"], loadData);
+
   if (!business) return null;
   const currency = business.currency || "KES";
 
   const totalDebt = debtors.reduce((acc, d) => acc + (d.credit_balance || 0), 0);
+  const averageDebt = debtors.length ? totalDebt / debtors.length : 0;
+  const noPaymentCount = debtors.filter(d => !d.lastPayment).length;
 
   const handleWhatsAppReminder = (debtor: any) => {
     const name = debtor.full_name || "Customer";
@@ -165,23 +170,16 @@ function CreditLedgerDashboard() {
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <BookOpenCheck className="h-8 w-8 text-primary" /> Credit Ledger
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">Track store credit and manage customer debt.</p>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="glass rounded-xl px-4 py-3 flex items-center gap-4">
-            <div>
-              <div className="text-xs text-muted-foreground">Total Outstanding</div>
-              <div className="text-xl font-bold text-destructive">{formatMoney(totalDebt, currency)}</div>
+    <div className="w-full p-4 md:p-8 space-y-6">
+      <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-card p-6 md:p-8 shadow-sm">
+        <div className="absolute inset-y-0 right-0 w-1/2 bg-gradient-to-l from-destructive/20 via-primary/10 to-transparent" />
+        <div className="relative flex flex-col md:flex-row justify-between md:items-end gap-5">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+              <BookOpenCheck className="h-3.5 w-3.5" /> Credit control desk
             </div>
-            <div className="h-10 w-10 rounded-lg bg-destructive/10 flex items-center justify-center">
-              <Banknote className="h-5 w-5 text-destructive" />
-            </div>
+            <h1 className="mt-4 text-3xl md:text-4xl font-bold tracking-tight">Credit Ledger</h1>
+            <p className="mt-2 text-sm text-muted-foreground">Track outstanding balances, collect faster, and keep customer debt visible.</p>
           </div>
           <Button onClick={openAddModal} className="h-12 px-6 shadow-md cursor-pointer gap-2">
             <Plus className="h-4 w-4" /> Add Credit / Payment
@@ -189,9 +187,25 @@ function CreditLedgerDashboard() {
         </div>
       </div>
 
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        {[
+          { label: "Total outstanding", value: formatMoney(totalDebt, currency), helper: "Amount to collect", icon: Banknote, tone: "from-rose-500/25 to-rose-500/5" },
+          { label: "Debtors", value: String(debtors.length), helper: `${filteredDebtors.length} visible`, icon: Users, tone: "from-primary/25 to-primary/5" },
+          { label: "Average balance", value: formatMoney(averageDebt, currency), helper: "Per debtor", icon: AlertTriangle, tone: "from-amber-500/25 to-amber-500/5" },
+          { label: "Never paid", value: String(noPaymentCount), helper: "Needs first follow-up", icon: CheckCircle2, tone: "from-emerald-500/25 to-emerald-500/5" },
+        ].map(card => (
+          <div key={card.label} className={`rounded-2xl border border-border/50 bg-gradient-to-br ${card.tone} p-5 shadow-sm`}>
+            <div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">{card.label}</span><card.icon className="h-5 w-5 text-primary" /></div>
+            <div className="mt-4 text-2xl font-bold truncate">{card.value}</div>
+            <div className="mt-1 text-xs text-muted-foreground">{card.helper}</div>
+          </div>
+        ))}
+      </div>
+
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-2xl p-5">
-        <div className="flex justify-between items-center mb-6">
-          <div className="relative w-64">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+          <div><h2 className="font-semibold">Outstanding accounts</h2><p className="text-xs text-muted-foreground">Send reminders and record payments from one place.</p></div>
+          <div className="relative w-full sm:w-80">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
               placeholder="Search debtors..." 

@@ -11,7 +11,7 @@
     "id_document_url": "https://cktnqgjkdxtwhibsblno.supabase.co/storage/v1/object/public/IDs/563e0afc-b101-4011-827f-a7c0200c88a6/1779442784283-iddoc.png",
     "account_number": "P25401",
     "work_account_number": "PUZ-7685",
-    "password_plain": "Qwerty@001",
+    "password_plain": "Qwerty@01",
     "email": "husseinzena39@gmail.com",
     "created_at": "2026-05-22T09:39:55.421Z",
     "profiles": {
@@ -19,6 +19,37 @@
       "phone": "+254722001100",
       "avatar_url": "https://cktnqgjkdxtwhibsblno.supabase.co/storage/v1/object/public/profiles/563e0afc-b101-4011-827f-a7c0200c88a6/1779442780325-profile.png"
     },
-    "store_id": "1cbd6cd9-ab3d-4902-aed8-dbc78f819290"
+    "store_id": "1cbd6cd9-ab3d-4902-aed8-dbc78f819290",
+    "store_name": "GVN",
+    "permissions": [
+      "pos",
+      "dashboard",
+      "offline_mode",
+      "customers"
+    ]
+  },
+  {
+    "id": "mock-emp-1780660435807",
+    "user_id": "mock-user-1780660435806",
+    "business_id": "ffd8166f-d094-4a3e-9512-dd1b69813688",
+    "business_slug": "cleanshave",
+    "role": "cashier",
+    "permissions": [],
+    "active": true,
+    "username": "Mrass",
+    "id_number": "32338850",
+    "id_document_url": "https://cktnqgjkdxtwhibsblno.supabase.co/storage/v1/object/public/IDs/ffd8166f-d094-4a3e-9512-dd1b69813688/1780660432843-iddoc.png",
+    "account_number": "CLE-8054",
+    "work_account_number": "CLE-8054",
+    "password_plain": "Qwerty@001",
+    "email": "mras@gmail.com",
+    "store_id": "643c4c42-a82f-4e7e-9e67-8493ad57609c",
+    "store_name": "Clean Shave",
+    "created_at": "2026-06-05T11:53:55.807Z",
+    "profiles": {
+      "full_name": "Mark Oyieyo",
+      "phone": "+254722001112",
+      "avatar_url": "https://cktnqgjkdxtwhibsblno.supabase.co/storage/v1/object/public/profiles/ffd8166f-d094-4a3e-9512-dd1b69813688/1780660431188-profile.jpg"
+    }
   }
 ]

@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useBusinessRealtime } from "@/lib/use-business-realtime";
 
 export const Route = createFileRoute("/t/$slug/notifications")({ component: NotificationsPage });
 
@@ -17,6 +18,7 @@ type NotificationData = {
   type: string;
   is_read: boolean;
   created_at: string;
+  derived?: boolean;
 };
 
 function NotificationsPage() {
@@ -24,19 +26,13 @@ function NotificationsPage() {
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [activeTab, setActiveTab] = useState("unread");
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     if (business) loadNotifications();
-    
-    if (business) {
-      const channel = supabase.channel('page_notifications_changes')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `business_id=eq.${business.id}` }, () => {
-          loadNotifications();
-        }).subscribe();
-        
-      return () => { supabase.removeChannel(channel); };
-    }
   }, [business]);
+
+  useBusinessRealtime(business?.id, ["notifications", "products", "purchase_orders", "sales"], loadNotifications);
 
   async function loadNotifications() {
     if (!business) return;
@@ -49,7 +45,8 @@ function NotificationsPage() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setNotifications(data || []);
+      const derivedAlerts = await buildDatabaseAlerts();
+      setNotifications([...(derivedAlerts as NotificationData[]), ...((data || []) as NotificationData[])]);
     } catch (e: any) {
       toast.error("Failed to load notifications: " + e.message);
     } finally {
@@ -86,19 +83,89 @@ function NotificationsPage() {
     }
   }
 
-  // Debug function for mock notifications
-  async function triggerMockAlert(type: string, title: string, message: string) {
+  async function buildDatabaseAlerts() {
     if (!business) return;
+    const now = new Date().toISOString();
+    const [{ data: products }, { data: suppliers }, { data: purchaseOrders }] = await Promise.all([
+      supabase.from("products").select("id,name,stock_quantity,low_stock_alert,active").eq("business_id", business.id).eq("active", true),
+      supabase.from("suppliers").select("id,supplier_name,delivery_days").eq("business_id", business.id),
+      supabase.from("purchase_orders").select("id,status,total_amount,created_at,suppliers(supplier_name)").eq("business_id", business.id).eq("status", "pending"),
+    ]);
+
+    const alerts: NotificationData[] = [];
+    (products || [])
+      .filter(p => Number(p.stock_quantity || 0) <= Number(p.low_stock_alert || 0))
+      .forEach(p => alerts.push({
+        id: `derived-low-stock-${p.id}`,
+        title: `Low stock: ${p.name}`,
+        message: `${p.name} has ${p.stock_quantity ?? 0} units left. Restock threshold is ${p.low_stock_alert ?? 0}.`,
+        type: "low_stock",
+        is_read: false,
+        created_at: now,
+        derived: true,
+      }));
+
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowLabel = tomorrow.toLocaleDateString(undefined, { weekday: "short" });
+    (suppliers || []).forEach(s => {
+      let days: string[] = [];
+      try { days = s.delivery_days ? JSON.parse(s.delivery_days) : []; } catch { days = s.delivery_days ? String(s.delivery_days).split(",").map(d => d.trim()) : []; }
+      if (days.includes(tomorrowLabel)) {
+        alerts.push({
+          id: `derived-delivery-${s.id}-${tomorrowLabel}`,
+          title: `Delivery due: ${s.supplier_name}`,
+          message: `${s.supplier_name} is scheduled for delivery on ${tomorrowLabel}.`,
+          type: "delivery",
+          is_read: false,
+          created_at: now,
+          derived: true,
+        });
+      }
+    });
+
+    (purchaseOrders || []).forEach((po: any) => {
+      const ageDays = Math.floor((Date.now() - new Date(po.created_at).getTime()) / 86400000);
+      if (ageDays >= 7) {
+        alerts.push({
+          id: `derived-overdue-po-${po.id}`,
+          title: `Pending PO: ${po.id.substring(0, 8).toUpperCase()}`,
+          message: `${po.suppliers?.supplier_name || "Supplier"} purchase order has been pending for ${ageDays} days.`,
+          type: "overdue",
+          is_read: false,
+          created_at: now,
+          derived: true,
+        });
+      }
+    });
+
+    return alerts;
+  }
+
+  async function syncDatabaseAlerts() {
+    if (!business) return;
+    setSyncing(true);
     try {
-      await supabase.from("notifications").insert({
-        business_id: business.id,
-        type,
-        title,
-        message
-      });
-      toast.success("Test alert generated");
-    } catch(e) {
-      console.error(e);
+      const alerts = await buildDatabaseAlerts();
+      if (!alerts?.length) {
+        toast.success("No database alerts found");
+        return;
+      }
+      const { data: existing } = await supabase
+        .from("notifications")
+        .select("title,message,is_read")
+        .eq("business_id", business.id);
+      const existingKeys = new Set((existing || []).map(n => `${n.title}|${n.message}`));
+      const inserts = alerts
+        .filter(a => !existingKeys.has(`${a.title}|${a.message}`))
+        .map(a => ({ business_id: business.id, type: a.type, title: a.title, message: a.message }));
+      if (inserts.length) await supabase.from("notifications").insert(inserts);
+      toast.success(inserts.length ? `Synced ${inserts.length} database alerts` : "Database alerts already synced");
+      loadNotifications();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to sync alerts");
+    } finally {
+      setSyncing(false);
     }
   }
 
@@ -115,7 +182,7 @@ function NotificationsPage() {
   const filtered = notifications.filter(n => activeTab === "all" || (activeTab === "unread" && !n.is_read));
 
   return (
-    <div className="p-6 md:p-8 max-w-4xl mx-auto space-y-6">
+    <div className="w-full p-6 md:p-8 space-y-6">
       <div className="flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-3">
@@ -129,15 +196,14 @@ function NotificationsPage() {
               <CheckCircle2 className="h-4 w-4" /> Mark all as read
             </Button>
           )}
+          <Button variant="outline" onClick={syncDatabaseAlerts} disabled={syncing} className="gap-2">
+            {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bell className="h-4 w-4" />} Sync database alerts
+          </Button>
         </div>
       </div>
-      
-      {/* Dev test buttons (hidden in real prod, but useful here for testing) */}
-      <div className="flex flex-wrap gap-2 p-3 bg-muted/30 rounded-lg border border-dashed border-border/50 text-xs">
-        <span className="font-semibold text-muted-foreground self-center mr-2">Test Triggers:</span>
-        <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => triggerMockAlert("low_stock", "Low Stock Alert", "Paracetamol 500mg is below minimum threshold (3 left).")}>Low Stock</Button>
-        <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => triggerMockAlert("delivery", "Next Delivery", "Supplier 'Fresh Farms' is scheduled to deliver tomorrow.")}>Delivery</Button>
-        <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => triggerMockAlert("overdue", "Overdue Invoice", "Purchase Order PO-3829 is overdue for payment.")}>Overdue</Button>
+
+      <div className="rounded-xl border border-border/60 bg-muted/20 p-4 text-xs text-muted-foreground">
+        Alerts shown here are loaded from saved notifications plus live checks against actual products, suppliers, and purchase orders in your database. No fake test alerts are generated.
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -177,8 +243,9 @@ function NotificationsPage() {
                     </span>
                   </div>
                   <p className="text-sm text-muted-foreground">{n.message}</p>
+                  {n.derived && <span className="mt-2 inline-flex rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[10px] font-bold">Live database alert</span>}
                 </div>
-                {!n.is_read && (
+                {!n.is_read && !n.derived && (
                   <div className="shrink-0 flex items-center">
                     <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-emerald-500/10 hover:text-emerald-600" onClick={() => markAsRead(n.id)}>
                       <Check className="h-4 w-4" />

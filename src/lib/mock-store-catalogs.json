@@ -1,0 +1,203 @@
+{
+  "ffd8166f-d094-4a3e-9512-dd1b69813688:643c4c42-a82f-4e7e-9e67-8493ad57609c": {
+    "store": {
+      "id": "643c4c42-a82f-4e7e-9e67-8493ad57609c",
+      "name": "Clean Shave",
+      "inventory_mode": "services"
+    },
+    "products": [],
+    "services": [
+      {
+        "id": "9b965238-c61f-4ed9-913e-2e7748725b23",
+        "name": "Beard Triming",
+        "description": null,
+        "price": 150,
+        "active": true
+      },
+      {
+        "id": "223c54fa-ddbb-46fc-a983-6e3a2ef909e1",
+        "name": "Fade Haircut",
+        "description": null,
+        "price": 250,
+        "active": true
+      },
+      {
+        "id": "76d44e17-3f2c-4f7c-b846-e86c2727b62a",
+        "name": "Massage",
+        "description": null,
+        "price": 2000,
+        "active": true
+      },
+      {
+        "id": "2a8de51d-a4a8-46e6-8030-5bf3135c7d2c",
+        "name": "Retouch",
+        "description": null,
+        "price": 800,
+        "active": true
+      }
+    ],
+    "categories": [],
+    "savedAt": "2026-06-05T13:04:31.723Z"
+  },
+  "563e0afc-b101-4011-827f-a7c0200c88a6:e3dbf8be-8218-4004-8e04-ad084954d28d": {
+    "store": {
+      "id": "e3dbf8be-8218-4004-8e04-ad084954d28d",
+      "name": "Puzzels Car wash",
+      "inventory_mode": "services"
+    },
+    "products": [],
+    "services": [
+      {
+        "id": "817fca68-6c5e-49a8-9427-3bbba98aeef0",
+        "name": "Motobike Washing",
+        "description": null,
+        "price": 150,
+        "active": true
+      }
+    ],
+    "categories": [
+      {
+        "id": "e82619e3-669f-43c6-b2fc-244751c162be",
+        "name": "Gin"
+      },
+      {
+        "id": "6fde0e12-6bc8-4a3a-8e1b-a30dbd5d6297",
+        "name": "Rolling Papers"
+      },
+      {
+        "id": "4cc3edc8-1967-42d0-8eaa-3eeab76ae81f",
+        "name": "Spirit"
+      },
+      {
+        "id": "26529398-3e02-465c-9002-aa94be5e1ecf",
+        "name": "Whiskey"
+      }
+    ],
+    "savedAt": "2026-06-05T12:57:43.272Z"
+  },
+  "563e0afc-b101-4011-827f-a7c0200c88a6:1cbd6cd9-ab3d-4902-aed8-dbc78f819290": {
+    "store": {
+      "id": "1cbd6cd9-ab3d-4902-aed8-dbc78f819290",
+      "name": "GVN",
+      "inventory_mode": "products"
+    },
+    "products": [
+      {
+        "id": "4a201b27-81c3-4152-a58a-56bd20b728aa",
+        "name": "Chrome Gin 750ML",
+        "price": 700,
+        "stock_quantity": 8,
+        "barcode": "6161101605465",
+        "sku": "121212",
+        "image_url": "https://cktnqgjkdxtwhibsblno.supabase.co/storage/v1/object/public/productts/563e0afc-b101-4011-827f-a7c0200c88a6/1779461030432.jpg",
+        "category_id": "e82619e3-669f-43c6-b2fc-244751c162be",
+        "categories": {
+          "name": "Gin"
+        },
+        "source_id": "4a201b27-81c3-4152-a58a-56bd20b728aa",
+        "item_type": "product",
+        "category_name": "Gin"
+      },
+      {
+        "id": "d6b5965a-12b9-43a2-b8fa-6cfbc8df7e53",
+        "name": "Jack Daniels",
+        "price": 3500,
+        "stock_quantity": 18,
+        "barcode": "1212121",
+        "sku": null,
+        "image_url": "https://cktnqgjkdxtwhibsblno.supabase.co/storage/v1/object/public/productts/563e0afc-b101-4011-827f-a7c0200c88a6/1779437684346.jpg",
+        "category_id": "26529398-3e02-465c-9002-aa94be5e1ecf",
+        "categories": {
+          "name": "Whiskey"
+        },
+        "source_id": "d6b5965a-12b9-43a2-b8fa-6cfbc8df7e53",
+        "item_type": "product",
+        "category_name": "Whiskey"
+      },
+      {
+        "id": "7f0a10b6-40d7-4cc9-99af-f2fd2492ea36",
+        "name": "KC Ginger",
+        "price": 750,
+        "stock_quantity": 8,
+        "barcode": "123412",
+        "sku": "123421",
+        "image_url": "https://cktnqgjkdxtwhibsblno.supabase.co/storage/v1/object/public/productts/563e0afc-b101-4011-827f-a7c0200c88a6/1780425098026.webp",
+        "category_id": "4cc3edc8-1967-42d0-8eaa-3eeab76ae81f",
+        "categories": {
+          "name": "Spirit"
+        },
+        "source_id": "7f0a10b6-40d7-4cc9-99af-f2fd2492ea36",
+        "item_type": "product",
+        "category_name": "Spirit"
+      },
+      {
+        "id": "4e13000f-7b43-4cac-9333-5f386fa05005",
+        "name": "KC Pinanple",
+        "price": 730,
+        "stock_quantity": 8,
+        "barcode": "12343",
+        "sku": "2343565",
+        "image_url": "https://cktnqgjkdxtwhibsblno.supabase.co/storage/v1/object/public/productts/563e0afc-b101-4011-827f-a7c0200c88a6/1780510044574.webp",
+        "category_id": "4cc3edc8-1967-42d0-8eaa-3eeab76ae81f",
+        "categories": {
+          "name": "Spirit"
+        },
+        "source_id": "4e13000f-7b43-4cac-9333-5f386fa05005",
+        "item_type": "product",
+        "category_name": "Spirit"
+      },
+      {
+        "id": "d1617ce6-4001-401e-ac6c-9d144bcd510b",
+        "name": "Konyagi",
+        "price": 900,
+        "stock_quantity": 8,
+        "barcode": "21212ewq1",
+        "sku": "12121",
+        "image_url": null,
+        "category_id": "4cc3edc8-1967-42d0-8eaa-3eeab76ae81f",
+        "categories": {
+          "name": "Spirit"
+        },
+        "source_id": "d1617ce6-4001-401e-ac6c-9d144bcd510b",
+        "item_type": "product",
+        "category_name": "Spirit"
+      },
+      {
+        "id": "3723f28e-deff-4ba8-9c78-62a3d5f9878b",
+        "name": "Rizzler",
+        "price": 100,
+        "stock_quantity": 8,
+        "barcode": "15154408",
+        "sku": "788",
+        "image_url": "https://cktnqgjkdxtwhibsblno.supabase.co/storage/v1/object/public/productts/563e0afc-b101-4011-827f-a7c0200c88a6/1779477510327.jpg",
+        "category_id": "6fde0e12-6bc8-4a3a-8e1b-a30dbd5d6297",
+        "categories": {
+          "name": "Rolling Papers"
+        },
+        "source_id": "3723f28e-deff-4ba8-9c78-62a3d5f9878b",
+        "item_type": "product",
+        "category_name": "Rolling Papers"
+      }
+    ],
+    "services": [],
+    "categories": [
+      {
+        "id": "e82619e3-669f-43c6-b2fc-244751c162be",
+        "name": "Gin"
+      },
+      {
+        "id": "6fde0e12-6bc8-4a3a-8e1b-a30dbd5d6297",
+        "name": "Rolling Papers"
+      },
+      {
+        "id": "4cc3edc8-1967-42d0-8eaa-3eeab76ae81f",
+        "name": "Spirit"
+      },
+      {
+        "id": "26529398-3e02-465c-9002-aa94be5e1ecf",
+        "name": "Whiskey"
+      }
+    ],
+    "savedAt": "2026-06-05T13:02:33.468Z"
+  }
+}

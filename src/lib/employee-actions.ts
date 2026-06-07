@@ -11,11 +11,19 @@ function isSimulatedMode() {
 }
 
 function getMockDbPath() {
+  return path.join(process.cwd(), ".zpos", "mock-employees.json");
+}
+
+function getLegacyMockDbPath() {
   return path.join(process.cwd(), "src", "lib", "mock-employees.json");
 }
 
+function getMockStoreCatalogPath() {
+  return path.join(process.cwd(), ".zpos", "mock-store-catalogs.json");
+}
+
 function readMockEmployees(): any[] {
-  const filePath = getMockDbPath();
+  const filePath = fs.existsSync(getMockDbPath()) ? getMockDbPath() : getLegacyMockDbPath();
   if (!fs.existsSync(filePath)) {
     return [];
   }
@@ -35,10 +43,51 @@ function writeMockEmployees(employees: any[]) {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    fs.writeFileSync(filePath, JSON.stringify(employees, null, 2), "utf-8");
+    const next = JSON.stringify(employees, null, 2);
+    if (fs.existsSync(filePath) && fs.readFileSync(filePath, "utf-8") === next) return;
+    fs.writeFileSync(filePath, next, "utf-8");
   } catch (e) {
     console.error("Failed to write mock employees JSON:", e);
   }
+}
+
+function readMockStoreCatalogs(): Record<string, any> {
+  const filePath = getMockStoreCatalogPath();
+  if (!fs.existsSync(filePath)) return {};
+  try {
+    return JSON.parse(fs.readFileSync(filePath, "utf-8"));
+  } catch (e) {
+    console.error("Failed to read mock store catalogs JSON:", e);
+    return {};
+  }
+}
+
+function writeMockStoreCatalogs(catalogs: Record<string, any>) {
+  const filePath = getMockStoreCatalogPath();
+  try {
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    const next = JSON.stringify(catalogs, null, 2);
+    if (fs.existsSync(filePath) && fs.readFileSync(filePath, "utf-8") === next) return;
+    fs.writeFileSync(filePath, next, "utf-8");
+  } catch (e) {
+    console.error("Failed to write mock store catalogs JSON:", e);
+  }
+}
+
+function mockStoreCatalogKey(businessId: string, storeId: string) {
+  return `${businessId}:${storeId}`;
+}
+
+async function resolveStoreName(client: any, businessId: string, storeId?: string | null) {
+  if (!storeId) return null;
+  const { data } = await client
+    .from("stores")
+    .select("name")
+    .eq("id", storeId)
+    .eq("business_id", businessId)
+    .maybeSingle();
+  return data?.name || null;
 }
 
 // Helper to send credential notification email via Resend API
@@ -48,7 +97,7 @@ async function sendEmployeeCredentialsEmail({
   businessName,
   workAccountNumber,
   password,
-  slug
+  slug,
 }: {
   email: string;
   fullName: string;
@@ -58,7 +107,7 @@ async function sendEmployeeCredentialsEmail({
   slug: string;
 }) {
   const apiKey = process.env.RESEND_API_KEY;
-  const loginUrl = `${process.env.VITE_APP_URL || 'http://localhost:8080'}/auth/login`;
+  const loginUrl = `${process.env.VITE_APP_URL || "http://localhost:8080"}/auth/login`;
 
   const htmlContent = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
@@ -100,7 +149,7 @@ async function sendEmployeeCredentialsEmail({
     console.log("=== [SIMULATED EMAIL] ===");
     console.log(`To: ${email}`);
     console.log(`Subject: Welcome to ZPos - Your Login Details`);
-    console.log(`Body:\n`, htmlContent.replace(/<[^>]*>/g, '').trim());
+    console.log(`Body:\n`, htmlContent.replace(/<[^>]*>/g, "").trim());
     console.log("==========================");
     return { success: true, simulated: true };
   }
@@ -109,15 +158,15 @@ async function sendEmployeeCredentialsEmail({
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json"
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         from: "ZPos <onboarding@resend.dev>",
         to: [email],
         subject: "Welcome to ZPos - Your Login Details",
-        html: htmlContent
-      })
+        html: htmlContent,
+      }),
     });
 
     if (!res.ok) {
@@ -153,7 +202,7 @@ export const createEmployeeFn = createServerFn({ method: "POST" })
       business_id,
       role,
       profile_picture_url,
-      store_id
+      store_id,
     } = data;
 
     // Security check: Verify that the authenticated user owns this business
@@ -172,6 +221,7 @@ export const createEmployeeFn = createServerFn({ method: "POST" })
 
     const cleanWorkAccountNumber = work_account_number.trim();
     const emailForLogin = `${cleanWorkAccountNumber}@zpos.internal`;
+    const storeName = await resolveStoreName(client, business_id, store_id);
 
     if (isSimulatedMode()) {
       const newUserId = `mock-user-${Date.now()}`;
@@ -181,6 +231,7 @@ export const createEmployeeFn = createServerFn({ method: "POST" })
         business_id,
         business_slug: business.slug,
         role: role || "cashier",
+        permissions: [],
         active: true,
         username,
         id_number,
@@ -190,12 +241,13 @@ export const createEmployeeFn = createServerFn({ method: "POST" })
         password_plain: password,
         email,
         store_id,
+        store_name: storeName,
         created_at: new Date().toISOString(),
         profiles: {
           full_name,
           phone,
-          avatar_url: profile_picture_url
-        }
+          avatar_url: profile_picture_url,
+        },
       };
 
       const mockEmployees = readMockEmployees();
@@ -211,7 +263,7 @@ export const createEmployeeFn = createServerFn({ method: "POST" })
             businessName: business.business_name || "ZPos Business",
             workAccountNumber: cleanWorkAccountNumber,
             password,
-            slug: business.slug
+            slug: business.slug,
           });
         } catch (err: any) {
           console.error("Failed to send credentials email:", err);
@@ -231,8 +283,8 @@ export const createEmployeeFn = createServerFn({ method: "POST" })
         full_name,
         phone,
         avatar_url: profile_picture_url,
-        username
-      }
+        username,
+      },
     });
 
     if (authError || !authUser?.user) {
@@ -246,7 +298,7 @@ export const createEmployeeFn = createServerFn({ method: "POST" })
       id: newUserId,
       full_name,
       phone,
-      avatar_url: profile_picture_url
+      avatar_url: profile_picture_url,
     });
 
     // 3. Insert employee record
@@ -254,6 +306,7 @@ export const createEmployeeFn = createServerFn({ method: "POST" })
       business_id,
       user_id: newUserId,
       role: role || "cashier",
+      permissions: [],
       active: true,
       username,
       id_number,
@@ -262,7 +315,7 @@ export const createEmployeeFn = createServerFn({ method: "POST" })
       work_account_number: cleanWorkAccountNumber,
       password_plain: password,
       email,
-      store_id
+      store_id,
     });
 
     if (empError) {
@@ -280,7 +333,7 @@ export const createEmployeeFn = createServerFn({ method: "POST" })
           businessName: business.business_name || "ZPos Business",
           workAccountNumber: cleanWorkAccountNumber,
           password,
-          slug: business.slug
+          slug: business.slug,
         });
       } catch (err: any) {
         console.error("Failed to send credentials email:", err);
@@ -310,10 +363,11 @@ export const updateEmployeeFn = createServerFn({ method: "POST" })
       work_account_number,
       password, // optional new password
       role,
+      permissions,
       active,
       profile_picture_url,
       business_id,
-      store_id
+      store_id,
     } = data;
 
     // Security check: Verify that the authenticated user owns this business
@@ -330,14 +384,18 @@ export const updateEmployeeFn = createServerFn({ method: "POST" })
     }
 
     const cleanWorkAccountNumber = work_account_number.trim();
+    const storeName = await resolveStoreName(client, business_id, store_id);
 
     if (isSimulatedMode()) {
       const mockEmployees = readMockEmployees();
-      const index = mockEmployees.findIndex(e => e.id === employee_id || e.user_id === user_id);
+      const index = mockEmployees.findIndex((e) => e.id === employee_id || e.user_id === user_id);
       if (index !== -1) {
         mockEmployees[index] = {
           ...mockEmployees[index],
           role,
+          permissions: Array.isArray(permissions)
+            ? permissions
+            : mockEmployees[index].permissions || [],
           active,
           username,
           id_number,
@@ -346,13 +404,14 @@ export const updateEmployeeFn = createServerFn({ method: "POST" })
           work_account_number: cleanWorkAccountNumber,
           email,
           store_id,
+          store_name: storeName,
           ...(password && password.trim() !== "" ? { password_plain: password } : {}),
           profiles: {
             ...mockEmployees[index].profiles,
             full_name,
             phone,
-            avatar_url: profile_picture_url
-          }
+            avatar_url: profile_picture_url,
+          },
         };
         writeMockEmployees(mockEmployees);
       }
@@ -362,7 +421,7 @@ export const updateEmployeeFn = createServerFn({ method: "POST" })
     // 1. Update Auth details if password changes
     if (password && password.trim() !== "") {
       const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(user_id, {
-        password: password
+        password: password,
       });
       if (authError) {
         throw new Error(authError.message || "Failed to update auth password.");
@@ -376,8 +435,8 @@ export const updateEmployeeFn = createServerFn({ method: "POST" })
         full_name,
         phone,
         avatar_url: profile_picture_url,
-        username
-      }
+        username,
+      },
     });
 
     // 2. Update Profile
@@ -385,12 +444,13 @@ export const updateEmployeeFn = createServerFn({ method: "POST" })
       id: user_id,
       full_name,
       phone,
-      avatar_url: profile_picture_url
+      avatar_url: profile_picture_url,
     });
 
     // 3. Update Employee details
     const updatePayload: any = {
       role,
+      permissions: Array.isArray(permissions) ? permissions : [],
       active,
       username,
       id_number,
@@ -398,7 +458,7 @@ export const updateEmployeeFn = createServerFn({ method: "POST" })
       account_number,
       work_account_number: cleanWorkAccountNumber,
       email,
-      store_id
+      store_id,
     };
 
     if (password && password.trim() !== "") {
@@ -413,6 +473,122 @@ export const updateEmployeeFn = createServerFn({ method: "POST" })
     if (empError) {
       throw new Error(empError.message || "Failed to update employee database record.");
     }
+
+    return { success: true };
+  });
+
+export const updateEmployeePermissionsFn = createServerFn({ method: "POST" })
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
+  .inputValidator((data: any) => data)
+  .handler(async ({ data, context }) => {
+    const { userId } = context;
+    const { employee_id, business_id, permissions } = data;
+
+    const client = isSimulatedMode() ? context.supabase : supabaseAdmin;
+    const { data: business, error: bizError } = await client
+      .from("businesses")
+      .select("id")
+      .eq("id", business_id)
+      .eq("owner_id", userId)
+      .maybeSingle();
+
+    if (bizError || !business) {
+      throw new Error("Unauthorized: You do not own this business.");
+    }
+
+    const cleanPermissions = Array.isArray(permissions) ? permissions : [];
+
+    if (isSimulatedMode()) {
+      const mockEmployees = readMockEmployees();
+      const index = mockEmployees.findIndex((e) => e.id === employee_id);
+      if (index === -1 || mockEmployees[index].role === "owner") {
+        throw new Error("Select a valid non-owner staff member.");
+      }
+      mockEmployees[index] = {
+        ...mockEmployees[index],
+        permissions: cleanPermissions,
+      };
+      writeMockEmployees(mockEmployees);
+      return { success: true, simulated: true };
+    }
+
+    const { data: employee, error: employeeError } = await supabaseAdmin
+      .from("employees")
+      .select("id, role")
+      .eq("id", employee_id)
+      .eq("business_id", business_id)
+      .maybeSingle();
+
+    if (employeeError || !employee || employee.role === "owner") {
+      throw new Error("Select a valid non-owner staff member.");
+    }
+
+    const { error: updateError } = await supabaseAdmin
+      .from("employees")
+      .update({ permissions: cleanPermissions })
+      .eq("id", employee_id)
+      .eq("business_id", business_id);
+
+    if (updateError) {
+      throw new Error(updateError.message || "Failed to update employee permissions.");
+    }
+
+      return { success: true };
+  });
+
+export const assignEmployeeStoreFn = createServerFn({ method: "POST" })
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
+  .inputValidator((data: any) => data)
+  .handler(async ({ data, context }) => {
+    const { userId } = context;
+    const { employee_id, user_id, business_id, store_id } = data;
+
+    const client = isSimulatedMode() ? context.supabase : supabaseAdmin;
+    const { data: business, error: bizError } = await client
+      .from("businesses")
+      .select("id")
+      .eq("id", business_id)
+      .eq("owner_id", userId)
+      .maybeSingle();
+
+    if (bizError || !business) {
+      throw new Error("Unauthorized: You do not own this business.");
+    }
+
+    let storeName: string | null = null;
+    if (store_id) {
+      const { data: store, error: storeError } = await client
+        .from("stores")
+        .select("id,name")
+        .eq("id", store_id)
+        .eq("business_id", business_id)
+        .maybeSingle();
+
+      if (storeError || !store) throw new Error("Selected store was not found.");
+      storeName = store.name || null;
+    }
+
+    if (isSimulatedMode()) {
+      const mockEmployees = readMockEmployees();
+      const index = mockEmployees.findIndex((e) => e.id === employee_id || e.user_id === user_id);
+      if (index !== -1) {
+        mockEmployees[index] = {
+          ...mockEmployees[index],
+          store_id: store_id || null,
+          store_name: storeName,
+        };
+        writeMockEmployees(mockEmployees);
+      }
+      return { success: true, simulated: true };
+    }
+
+    const { error } = await supabaseAdmin
+      .from("employees")
+      .update({ store_id: store_id || null })
+      .eq("id", employee_id)
+      .eq("business_id", business_id);
+
+    if (error) throw new Error(error.message || "Failed to assign employee store.");
 
     return { success: true };
   });
@@ -440,7 +616,7 @@ export const deleteEmployeeFn = createServerFn({ method: "POST" })
 
     if (isSimulatedMode()) {
       const mockEmployees = readMockEmployees();
-      const updated = mockEmployees.filter(e => e.id !== employee_id && e.user_id !== user_id);
+      const updated = mockEmployees.filter((e) => e.id !== employee_id && e.user_id !== user_id);
       writeMockEmployees(updated);
       return { success: true, simulated: true };
     }
@@ -465,7 +641,9 @@ export const getEmployeeLoginDetailsFn = createServerFn({ method: "POST" })
 
     if (isSimulatedMode()) {
       const mockEmployees = readMockEmployees();
-      const employee = mockEmployees.find(e => e.work_account_number === workAccountNumber.trim());
+      const employee = mockEmployees.find(
+        (e) => e.work_account_number === workAccountNumber.trim(),
+      );
       if (!employee) {
         throw new Error("No employee found with this Work Account Number.");
       }
@@ -477,14 +655,14 @@ export const getEmployeeLoginDetailsFn = createServerFn({ method: "POST" })
         password: employee.password_plain,
         slug: employee.business_slug || "simulated-slug",
         simulated: true,
-        employeeData: employee
+        employeeData: employee,
       };
     }
 
     // Query employees table using admin client (bypasses RLS)
     const { data: employee, error } = await supabaseAdmin
       .from("employees")
-      .select("id, work_account_number, business_id, active, password_plain")
+      .select("id, user_id, work_account_number, business_id, active, password_plain, store_id")
       .eq("work_account_number", workAccountNumber.trim())
       .maybeSingle();
 
@@ -503,19 +681,207 @@ export const getEmployeeLoginDetailsFn = createServerFn({ method: "POST" })
     // Get business slug
     const { data: business, error: bizError } = await supabaseAdmin
       .from("businesses")
-      .select("slug")
+      .select("slug, account_status")
       .eq("id", employee.business_id)
       .single();
 
     if (bizError || !business) {
       throw new Error("Business not found for this employee.");
     }
+    if ((business as { account_status?: string }).account_status !== "active") {
+      throw new Error("This business account is not active. Please contact the owner.");
+    }
+
+    let storeName: string | null = null;
+    if (employee.store_id) {
+      const { data: store } = await supabaseAdmin
+        .from("stores")
+        .select("name")
+        .eq("id", employee.store_id)
+        .eq("business_id", employee.business_id)
+        .maybeSingle();
+      storeName = store?.name || null;
+    }
 
     return {
       email: `${employee.work_account_number}@zpos.internal`,
       password: employee.password_plain,
-      slug: business.slug
+      slug: business.slug,
+      employee_id: employee.id,
+      business_id: employee.business_id,
+      employeeData: { ...employee, store_name: storeName },
     };
+  });
+
+export const getEmployeeStoreContextFn = createServerFn({ method: "POST" })
+  .inputValidator((data: any) => data)
+  .handler(async ({ data }) => {
+    const { businessId, employeeId, userId, storeId, workAccountNumber } = data;
+    if (!businessId) return { store_id: storeId || null, store_name: null };
+
+    if (isSimulatedMode()) {
+      const employee = readMockEmployees().find(
+        (e) =>
+          e.business_id === businessId &&
+          ((employeeId && e.id === employeeId) ||
+            (userId && e.user_id === userId) ||
+            (workAccountNumber && e.work_account_number === workAccountNumber) ||
+            (storeId && e.store_id === storeId)),
+      );
+      return {
+        store_id: employee?.store_id || storeId || null,
+        store_name: employee?.store_name || employee?.stores?.name || null,
+      };
+    }
+
+    let resolvedStoreId = storeId || null;
+    if (employeeId || userId || workAccountNumber) {
+      let query = supabaseAdmin
+        .from("employees")
+        .select("store_id")
+        .eq("business_id", businessId);
+
+      if (employeeId) query = query.eq("id", employeeId);
+      else if (userId) query = query.eq("user_id", userId);
+      else if (workAccountNumber) query = query.eq("work_account_number", workAccountNumber);
+
+      const { data: employee } = await query.maybeSingle();
+      resolvedStoreId = employee?.store_id || resolvedStoreId;
+    }
+
+    if (!resolvedStoreId) return { store_id: null, store_name: null };
+
+    const { data: store } = await supabaseAdmin
+      .from("stores")
+      .select("name")
+      .eq("business_id", businessId)
+      .eq("id", resolvedStoreId)
+      .maybeSingle();
+
+    return { store_id: resolvedStoreId, store_name: store?.name || null };
+  });
+
+export const listBusinessPosStoresFn = createServerFn({ method: "POST" })
+  .inputValidator((data: any) => data)
+  .handler(async ({ data }) => {
+    const { businessId } = data;
+    if (!businessId) return { stores: [] };
+
+    if (isSimulatedMode()) return { stores: [] };
+
+    const { data: stores, error } = await supabaseAdmin
+      .from("stores")
+      .select("id,name,active,inventory_mode")
+      .eq("business_id", businessId)
+      .order("name");
+
+    if (error) {
+      console.warn("Failed to list POS stores", error);
+      return { stores: [] };
+    }
+
+    return { stores: stores || [] };
+  });
+
+export const getStorePosCatalogFn = createServerFn({ method: "POST" })
+  .inputValidator((data: any) => data)
+  .handler(async ({ data }) => {
+    const { businessId, storeId } = data;
+    if (!businessId || !storeId) {
+      return { store: null, products: [], services: [], categories: [] };
+    }
+
+    if (isSimulatedMode()) {
+      const catalogs = readMockStoreCatalogs();
+      const catalog = catalogs[mockStoreCatalogKey(businessId, storeId)];
+      if (catalog) {
+        return {
+          store: catalog.store || null,
+          products: catalog.products || [],
+          services: catalog.services || [],
+          categories: catalog.categories || [],
+          simulated: true,
+        };
+      }
+    }
+
+    try {
+      const [{ data: store }, { data: categories }] = await Promise.all([
+        supabaseAdmin
+          .from("stores")
+          .select("id,name,inventory_mode")
+          .eq("business_id", businessId)
+          .eq("id", storeId)
+          .maybeSingle(),
+        supabaseAdmin
+          .from("categories")
+          .select("id,name")
+          .eq("business_id", businessId)
+          .order("name"),
+      ]);
+
+      if (!store) return { store: null, products: [], services: [], categories: categories || [] };
+
+      const [productResult, inventoryResult, serviceResult] = await Promise.all([
+        supabaseAdmin
+          .from("products")
+          .select("id,name,price,stock_quantity,barcode,sku,image_url,category_id,categories(name)")
+          .eq("business_id", businessId)
+          .or("active.is.null,active.eq.true")
+          .order("name"),
+        (supabaseAdmin as any)
+          .from("store_inventory")
+          .select("product_id,stock_quantity,low_stock_alert")
+          .eq("business_id", businessId)
+          .eq("store_id", storeId),
+        (supabaseAdmin as any)
+          .from("store_services")
+          .select("id,name,description,price,active")
+          .eq("business_id", businessId)
+          .eq("store_id", storeId)
+          .or("active.is.null,active.eq.true")
+          .order("name"),
+      ]);
+
+      const inventoryByProduct = new Map(
+        ((inventoryResult.data || []) as any[]).map((row) => [row.product_id, row]),
+      );
+      const products = ((productResult.data || []) as any[])
+        .filter((product) => inventoryByProduct.has(product.id))
+        .map((product) => ({
+          ...product,
+          stock_quantity: inventoryByProduct.get(product.id)?.stock_quantity ?? 0,
+        }));
+
+      return {
+        store,
+        products,
+        services: serviceResult.data || [],
+        categories: categories || [],
+      };
+    } catch (error) {
+      console.warn("Failed to load store POS catalog", error);
+      return { store: null, products: [], services: [], categories: [] };
+    }
+  });
+
+export const saveStorePosCatalogSnapshotFn = createServerFn({ method: "POST" })
+  .inputValidator((data: any) => data)
+  .handler(async ({ data }) => {
+    const { businessId, storeId, store, products, services, categories } = data;
+    if (!businessId || !storeId) return { success: false };
+    if (!isSimulatedMode()) return { success: true };
+
+    const catalogs = readMockStoreCatalogs();
+    catalogs[mockStoreCatalogKey(businessId, storeId)] = {
+      store: store || null,
+      products: Array.isArray(products) ? products : [],
+      services: Array.isArray(services) ? services : [],
+      categories: Array.isArray(categories) ? categories : [],
+      savedAt: new Date().toISOString(),
+    };
+    writeMockStoreCatalogs(catalogs);
+    return { success: true, simulated: true };
   });
 
 // Server action to list simulated employees (unauthenticated/authenticated lookup)
@@ -525,7 +891,7 @@ export const listMockEmployeesFn = createServerFn({ method: "POST" })
     const { business_id } = data;
     if (isSimulatedMode()) {
       const mockEmployees = readMockEmployees();
-      const filtered = mockEmployees.filter(e => e.business_id === business_id);
+      const filtered = mockEmployees.filter((e) => e.business_id === business_id);
       return { employees: filtered };
     }
     return { employees: [] };

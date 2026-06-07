@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
@@ -9,12 +9,22 @@ import { toast } from "sonner";
 import { Fingerprint, Loader2, User, UserCog, Sparkles, X } from "lucide-react";
 import { getEmployeeLoginDetailsFn } from "@/lib/employee-actions";
 import { useAuth } from "@/lib/auth-context";
+import { getTenantSlugFromHost } from "@/lib/subdomain-url";
+import { SiteFooter } from "@/components/site-footer";
+import zposLogo from "@/assests/zposlogo.png";
 
 export const Route = createFileRoute("/auth/login")({ component: Login });
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isUuid(value?: string) {
+  return !!value && UUID_PATTERN.test(value);
+}
+
 function Login() {
   const nav = useNavigate();
-  const { setMockSession } = useAuth();
+  const { user, loading: authLoading, setMockSession } = useAuth();
+  const tenantSlug = getTenantSlugFromHost();
   const [loginType, setLoginType] = useState<"owner" | "employee">("owner");
   
   // Owner auth
@@ -32,13 +42,67 @@ function Login() {
   const [scanStatus, setScanStatus] = useState("Place finger on the reader...");
   const [scanPercent, setScanPercent] = useState(0);
 
+  useEffect(() => {
+    if (authLoading || !user || !tenantSlug) return;
+    nav({ to: "/t/$slug", params: { slug: tenantSlug } });
+  }, [authLoading, nav, tenantSlug, user]);
+
+  function clearEmployeeMockSession() {
+    setMockSession?.(null);
+    if (typeof window === "undefined") return;
+    localStorage.removeItem("zpos-mock-user");
+    localStorage.removeItem("zpos-mock-employee");
+    localStorage.removeItem("zpos-employee-login-session-id");
+  }
+
+  async function checkShiftAccess(employeeId?: string, businessId?: string) {
+    if (!employeeId || !businessId) return;
+    if (!isUuid(employeeId) || !isUuid(businessId)) return;
+    const { data, error } = await supabase.rpc("can_employee_login_now" as any, {
+      p_employee_id: employeeId,
+      p_business_id: businessId,
+    });
+    if (error) {
+      // Migration may not be applied yet. Do not break legacy login in that case.
+      if (error.code === "42883" || error.message?.includes("can_employee_login_now")) return;
+      throw error;
+    }
+    const result = Array.isArray(data) ? data[0] : data;
+    if (result && result.allowed === false) {
+      throw new Error(result.reason || "You can only login during your assigned shift.");
+    }
+  }
+
+  async function recordLoginSession(employeeId?: string, businessId?: string, userId?: string, method = "password") {
+    if (!employeeId || !businessId) return;
+    if (!isUuid(employeeId) || !isUuid(businessId)) return;
+    const { data, error } = await supabase.rpc("record_employee_login_session" as any, {
+      p_employee_id: employeeId,
+      p_business_id: businessId,
+      p_user_id: userId || null,
+      p_login_method: method,
+      p_device_label: navigator.userAgent.slice(0, 160),
+    });
+    if (error) {
+      if (error.code === "42883" || error.message?.includes("record_employee_login_session")) return;
+      console.warn("Failed to record login session:", error);
+      return;
+    }
+    if (data && typeof window !== "undefined") localStorage.setItem("zpos-employee-login-session-id", String(data));
+  }
+
   async function onOwnerSubmit(e: React.FormEvent) {
     e.preventDefault();
+    clearEmployeeMockSession();
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) return toast.error(error.message);
     toast.success("Welcome back");
+    if (tenantSlug) {
+      nav({ to: "/t/$slug", params: { slug: tenantSlug } });
+      return;
+    }
     nav({ to: "/onboarding" });
   }
 
@@ -60,6 +124,8 @@ function Login() {
           throw new Error("Invalid password.");
         }
 
+        await checkShiftAccess(details.employeeData?.id, details.employeeData?.business_id);
+
         const mockUser = {
           id: details.employeeData.user_id,
           email: details.email,
@@ -77,11 +143,14 @@ function Login() {
           localStorage.setItem("zpos-mock-user", JSON.stringify(mockUser));
         }
         localStorage.setItem("zpos-mock-employee", JSON.stringify(details.employeeData));
+        await recordLoginSession(details.employeeData?.id, details.employeeData?.business_id, details.employeeData?.user_id, "password_simulated");
 
         toast.success("Employee login successful (Simulated)!");
-        nav({ to: `/t/${details.slug}/pos` });
+        nav({ to: `/t/${details.slug}` });
         return;
       }
+
+      await checkShiftAccess((details as any).employee_id, (details as any).business_id);
 
       // 2. Perform authentication with Supabase
       const { error: loginError } = await supabase.auth.signInWithPassword({
@@ -91,8 +160,10 @@ function Login() {
 
       if (loginError) throw loginError;
 
+      await recordLoginSession((details as any).employee_id, (details as any).business_id, undefined, "password");
+
       toast.success("Employee login successful!");
-      nav({ to: `/t/${details.slug}/pos` });
+      nav({ to: `/t/${details.slug}` });
     } catch (err: any) {
       toast.error(err.message || "Invalid credentials.");
     } finally {
@@ -133,6 +204,7 @@ function Login() {
       }
 
       if (details.simulated) {
+        await checkShiftAccess(details.employeeData?.id, details.employeeData?.business_id);
         const mockUser = {
           id: details.employeeData.user_id,
           email: details.email,
@@ -150,12 +222,15 @@ function Login() {
           localStorage.setItem("zpos-mock-user", JSON.stringify(mockUser));
         }
         localStorage.setItem("zpos-mock-employee", JSON.stringify(details.employeeData));
+        await recordLoginSession(details.employeeData?.id, details.employeeData?.business_id, details.employeeData?.user_id, "biometric_simulated");
 
         setIsScanning(false);
         toast.success("Biometric Authentication Successful (Simulated)!");
-        nav({ to: `/t/${details.slug}/pos` });
+        nav({ to: `/t/${details.slug}` });
         return;
       }
+
+      await checkShiftAccess((details as any).employee_id, (details as any).business_id);
 
       if (!details.password) {
         throw new Error("No password registered for this work account. Please login using your password.");
@@ -169,9 +244,11 @@ function Login() {
 
       if (loginError) throw loginError;
 
+      await recordLoginSession((details as any).employee_id, (details as any).business_id, undefined, "biometric");
+
       setIsScanning(false);
       toast.success("Biometric Authentication Successful!");
-      nav({ to: `/t/${details.slug}/pos` });
+      nav({ to: `/t/${details.slug}` });
     } catch (err: any) {
       setIsScanning(false);
       toast.error(err.message || "Biometric authentication failed. Try standard password login.");
@@ -342,17 +419,32 @@ function Login() {
   );
 }
 
-export function AuthShell({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
+export function AuthShell({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  children?: React.ReactNode;
+}) {
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 grid-bg">
-      <Link to="/" className="absolute top-6 left-6 flex items-center gap-2">
-        <div className="h-7 w-7 rounded-md gradient-violet" /><span className="font-semibold">ZPos</span>
-      </Link>
-      <div className="w-full max-w-md glass rounded-2xl p-8">
-        <h1 className="text-2xl font-bold">{title}</h1>
-        {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
-        <div className="mt-6">{children}</div>
-      </div>
+    <div className="min-h-screen grid-bg flex flex-col">
+      <main className="flex flex-1 items-center justify-center px-4 py-24">
+        <Link to="/" className="absolute top-6 left-6 flex items-center gap-2">
+          <img
+            src={zposLogo}
+            alt="ZPos logo"
+            className="h-10 w-auto max-w-[140px] object-contain"
+          />
+        </Link>
+        <div className="w-full max-w-md glass rounded-2xl p-8">
+          <h1 className="text-2xl font-bold">{title}</h1>
+          {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
+          <div className="mt-6">{children}</div>
+        </div>
+      </main>
+      <SiteFooter compact />
     </div>
   );
 }

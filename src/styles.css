@@ -220,6 +220,21 @@
     background-color: var(--background) !important;
     background-image: none !important;
   }
+  .workspace-sidebar {
+    background:
+      radial-gradient(circle at top left, color-mix(in srgb, var(--primary) 70%, transparent), transparent 38%),
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--primary) 86%, #020617),
+        color-mix(in srgb, var(--primary) 48%, #020617)
+      );
+  }
+  .workspace-sidebar-border {
+    border-color: color-mix(in srgb, var(--primary) 56%, #020617);
+  }
+  .workspace-sidebar-glow {
+    box-shadow: 0 0 18px color-mix(in srgb, var(--primary) 42%, transparent);
+  }
 
   /* Flip Card Utilities */
   .perspective-1000 {

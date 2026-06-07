@@ -17,6 +17,7 @@ interface BarcodeScannerModalProps {
   continuousScan: boolean;
   setContinuousScan: (val: boolean) => void;
   title?: string;
+  validateCode?: (code: string) => { valid: boolean; message?: string; productName?: string; stock?: number };
 }
 
 export function BarcodeScannerModal({
@@ -30,6 +31,7 @@ export function BarcodeScannerModal({
   continuousScan,
   setContinuousScan,
   title = "Camera Barcode Scanner",
+  validateCode,
 }: BarcodeScannerModalProps) {
   const [scannerError, setScannerError] = useState<{
     title: string;
@@ -41,12 +43,14 @@ export function BarcodeScannerModal({
   const [hasTorch, setHasTorch] = useState(false);
   const [hasAutofocus, setHasAutofocus] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
+  const [scanStatus, setScanStatus] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // DOM Refs
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const html5QrRef = useRef<Html5Qrcode | null>(null);
+  const stableScanRef = useRef<{ code: string; count: number; time: number }>({ code: "", count: 0, time: 0 });
 
   // Mutex-like ref to prevent overlapping frame decodes
   const isDecodingRef = useRef(false);
@@ -57,6 +61,7 @@ export function BarcodeScannerModal({
       setScannerError(null);
       setHasTorch(false);
       setHasAutofocus(false);
+      setScanStatus(null);
       return;
     }
 
@@ -75,7 +80,11 @@ export function BarcodeScannerModal({
           Html5QrcodeSupportedFormats.CODE_39,
           Html5QrcodeSupportedFormats.CODE_93,
           Html5QrcodeSupportedFormats.QR_CODE,
-        ];
+          (Html5QrcodeSupportedFormats as any).DATA_MATRIX,
+          (Html5QrcodeSupportedFormats as any).PDF_417,
+          (Html5QrcodeSupportedFormats as any).AZTEC,
+          (Html5QrcodeSupportedFormats as any).ITF,
+        ].filter(Boolean);
         html5QrRef.current = new Html5Qrcode("dummy-html5qr-reader", {
           verbose: false,
           formatsToSupport,
@@ -130,6 +139,15 @@ export function BarcodeScannerModal({
               });
               console.log("Applied hardware continuous autofocus constraint.");
             }
+
+            const advanced: any[] = [];
+            if (capabilities.exposureMode?.includes?.("continuous")) advanced.push({ exposureMode: "continuous" });
+            if (capabilities.whiteBalanceMode?.includes?.("continuous")) advanced.push({ whiteBalanceMode: "continuous" });
+            if (capabilities.zoom) {
+              const targetZoom = Math.min(capabilities.zoom.max, Math.max(capabilities.zoom.min, capabilities.zoom.min + 0.25));
+              advanced.push({ zoom: targetZoom });
+            }
+            if (advanced.length) await track.applyConstraints({ advanced });
           } catch (capsErr) {
             console.warn("Failed to apply advanced camera focus capabilities:", capsErr);
           }
@@ -236,9 +254,9 @@ export function BarcodeScannerModal({
       const vWidth = video.videoWidth;
       const vHeight = video.videoHeight;
 
-      // Crop the center region of interest (80% width and 40% height of resolution)
-      const cropWidth = Math.floor(vWidth * 0.8);
-      const cropHeight = Math.floor(vHeight * 0.4);
+      // Crop only the visible target zone. This reduces false positives from shelf labels/background text.
+      const cropWidth = Math.floor(vWidth * 0.84);
+      const cropHeight = Math.floor(vHeight * 0.34);
       const cropX = Math.floor((vWidth - cropWidth) / 2);
       const cropY = Math.floor((vHeight - cropHeight) / 2);
 
@@ -300,9 +318,39 @@ export function BarcodeScannerModal({
           .scanFileV2(file, false)
           .then((result) => {
             if (result && result.decodedText) {
-              onScanResult(result.decodedText);
-              if (!continuousScan) {
-                onClose();
+              const decodedCode = result.decodedText.trim();
+              const now = Date.now();
+              const stable = stableScanRef.current;
+
+              if (stable.code === decodedCode && now - stable.time < 1200) {
+                stableScanRef.current = { code: decodedCode, count: stable.count + 1, time: now };
+              } else {
+                stableScanRef.current = { code: decodedCode, count: 1, time: now };
+              }
+
+              // Require two consecutive reads of the same code from the target zone before accepting.
+              if (stableScanRef.current.count >= 2) {
+                const validation = validateCode?.(decodedCode);
+                if (validation && !validation.valid) {
+                  setScanStatus({ type: "error", text: validation.message || `Not in inventory: ${decodedCode}` });
+                  toast.warning(validation.message || `Barcode not registered: ${decodedCode}`, {
+                    description: "Scan a product barcode that exists in your inventory.",
+                    duration: 2500,
+                  });
+                  stableScanRef.current = { code: "", count: 0, time: 0 };
+                } else {
+                  setScanStatus({
+                    type: "success",
+                    text: validation?.productName
+                      ? `Available: ${validation.productName}${typeof validation.stock === "number" ? ` (${validation.stock} in stock)` : ""}`
+                      : `Available: ${decodedCode}`,
+                  });
+                  onScanResult(decodedCode);
+                  stableScanRef.current = { code: "", count: 0, time: 0 };
+                  if (!continuousScan) {
+                    onClose();
+                  }
+                }
               }
             }
             isDecodingRef.current = false;
@@ -361,7 +409,7 @@ export function BarcodeScannerModal({
           {!scannerError && (
             <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
               {/* Central Bounding Box matching our crop percentages */}
-              <div className="w-[80%] h-[40%] border-2 border-indigo-500/60 rounded-xl relative shadow-[0_0_0_9999px_rgba(3,7,18,0.7)]">
+              <div className="w-[84%] h-[34%] border-2 border-indigo-500/70 rounded-xl relative shadow-[0_0_0_9999px_rgba(3,7,18,0.76)]">
                 
                 {/* Visual Corner bracket indicators */}
                 <div className="absolute -top-1 -left-1 w-4.5 h-4.5 border-t-4 border-l-4 border-indigo-400 rounded-tl-sm"></div>
@@ -371,6 +419,10 @@ export function BarcodeScannerModal({
 
                 {/* Vertical sweeping laser animation */}
                 <div className="absolute left-1 right-1 top-2 h-0.5 bg-rose-500 shadow-[0_0_10px_#ef4444] rounded-full animate-laser-line"></div>
+                <div className="absolute inset-x-6 top-1/2 -translate-y-1/2 border-t border-dashed border-white/45"></div>
+                <div className="absolute -bottom-7 left-0 right-0 text-center text-[10px] font-semibold text-white/80">
+                  Keep only one barcode inside this box
+                </div>
               </div>
             </div>
           )}
@@ -416,6 +468,12 @@ export function BarcodeScannerModal({
                   Cancel
                 </Button>
               </div>
+            </div>
+          )}
+
+          {!scannerError && scanStatus && (
+            <div className={`absolute left-3 right-3 bottom-3 z-20 rounded-xl border px-3 py-2 text-xs font-semibold shadow-lg ${scanStatus.type === "success" ? "bg-emerald-500/90 border-emerald-300 text-white" : "bg-rose-500/90 border-rose-300 text-white"}`}>
+              {scanStatus.text}
             </div>
           )}
         </div>
@@ -484,8 +542,9 @@ export function BarcodeScannerModal({
           </div>
 
           <div className="text-[10px] text-center text-slate-500 leading-normal border-t border-slate-900/50 pt-2.5 flex items-center justify-between">
-            <span>Hardware Focus: <strong className="text-indigo-400">{hasAutofocus ? "AUTO" : "MANUAL"}</strong></span>
+            <span>Focus: <strong className="text-indigo-400">{hasAutofocus ? "AUTO" : "MANUAL"}</strong></span>
             <span>Active: <strong className="text-indigo-400 uppercase">{facingMode === "environment" ? "REAR" : "FRONT"}</strong></span>
+            <span>2D: <strong className="text-indigo-400">ON</strong></span>
           </div>
         </div>
       </DialogContent>

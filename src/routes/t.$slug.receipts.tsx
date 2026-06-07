@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/lib/tenant-context";
-import { Receipt, CheckCircle2, Save, Image as ImageIcon } from "lucide-react";
+import { Receipt, CheckCircle2, Save, Image as ImageIcon, FileText, Smartphone, Printer, Palette } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -93,18 +93,37 @@ function ReceiptsSettings() {
   if (!business) return null;
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Receipt className="h-8 w-8 text-primary" /> Receipt Templates
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">Configure your printed and digital receipt formats.</p>
+    <div className="w-full p-4 md:p-8 space-y-8">
+      <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-card p-6 md:p-8 shadow-sm">
+        <div className="absolute inset-y-0 right-0 w-1/2 bg-gradient-to-l from-primary/20 via-amber-500/10 to-transparent" />
+        <div className="relative flex flex-col md:flex-row justify-between md:items-end gap-5">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+              <Receipt className="h-3.5 w-3.5" /> Brand receipt studio
+            </div>
+            <h1 className="mt-4 text-3xl md:text-4xl font-bold tracking-tight">Receipt Templates</h1>
+            <p className="mt-2 text-sm text-muted-foreground">Configure professional print, invoice, email, SMS, and brand-forward receipts.</p>
+          </div>
+          <Button onClick={handleSave} disabled={saving} className="h-11 px-6 shadow-md gap-2 cursor-pointer">
+            <Save className="h-4 w-4" />
+            {saving ? "Saving..." : "Save Settings"}
+          </Button>
         </div>
-        <Button onClick={handleSave} disabled={saving} className="h-11 px-6 shadow-md gap-2 cursor-pointer">
-          <Save className="h-4 w-4" />
-          {saving ? "Saving..." : "Save Settings"}
-        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        {[
+          { label: "Templates", value: String(TEMPLATES.length), helper: "Available formats", icon: FileText, tone: "from-primary/25 to-primary/5" },
+          { label: "Print ready", value: "6", helper: "Thermal and invoice layouts", icon: Printer, tone: "from-emerald-500/25 to-emerald-500/5" },
+          { label: "Digital ready", value: "3", helper: "Email, SMS, and QR options", icon: Smartphone, tone: "from-blue-500/25 to-blue-500/5" },
+          { label: "Branding", value: logoPreview ? "Logo set" : "No logo", helper: "Receipt identity status", icon: Palette, tone: "from-amber-500/25 to-amber-500/5" },
+        ].map(card => (
+          <div key={card.label} className={`rounded-2xl border border-border/50 bg-gradient-to-br ${card.tone} p-5 shadow-sm`}>
+            <div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">{card.label}</span><card.icon className="h-5 w-5 text-primary" /></div>
+            <div className="mt-4 text-2xl font-bold truncate">{card.value}</div>
+            <div className="mt-1 text-xs text-muted-foreground">{card.helper}</div>
+          </div>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

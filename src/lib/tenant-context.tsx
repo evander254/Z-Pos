@@ -5,39 +5,55 @@ import { useAuth } from "@/lib/auth-context";
 
 export type Business = Database["public"]["Tables"]["businesses"]["Row"];
 export type Employee = Database["public"]["Tables"]["employees"]["Row"];
+type AccountStatus = "active" | "suspended" | "deleted";
 
 interface TenantCtx {
   business: Business | null;
   employee: Employee | null;
-  role: 'owner' | 'admin' | 'manager' | 'cashier' | null;
+  role: "owner" | "admin" | "manager" | "cashier" | null;
   loading: boolean;
   refresh: () => Promise<void>;
 }
 
-const Ctx = createContext<TenantCtx>({ 
-  business: null, 
+const Ctx = createContext<TenantCtx>({
+  business: null,
   employee: null,
   role: null,
-  loading: true, 
-  refresh: async () => {} 
+  loading: true,
+  refresh: async () => {},
 });
 
 export function TenantProvider({ slug, children }: { slug: string; children: ReactNode }) {
   const { user } = useAuth();
+  const userId = user?.id ?? null;
   const [business, setBusiness] = useState<Business | null>(null);
   const [employee, setEmployee] = useState<Employee | null>(null);
-  const [role, setRole] = useState<'owner' | 'admin' | 'manager' | 'cashier' | null>(null);
+  const [role, setRole] = useState<"owner" | "admin" | "manager" | "cashier" | null>(null);
   const [loading, setLoading] = useState(true);
 
   async function load() {
     setLoading(true);
-    const { data: bizData } = await supabase.from("businesses").select("*").eq("slug", slug).maybeSingle();
+    const { data: bizData } = await supabase
+      .from("businesses")
+      .select("*")
+      .eq("slug", slug)
+      .maybeSingle();
     const currentBiz = bizData as Business | null;
     setBusiness(currentBiz);
 
     if (currentBiz && user) {
+      const isOwner = currentBiz.owner_id === user.id;
+      const accountStatus = ((currentBiz as Business & { account_status?: AccountStatus | null })
+        .account_status || "active") as AccountStatus;
+      if (accountStatus === "deleted" || (accountStatus === "suspended" && !isOwner)) {
+        setEmployee(null);
+        setRole(null);
+        setLoading(false);
+        return;
+      }
+
       let currentEmp: Employee | null = null;
-      if (typeof window !== 'undefined') {
+      if (typeof window !== "undefined") {
         const storedEmp = localStorage.getItem("zpos-mock-employee");
         if (storedEmp) {
           try {
@@ -53,7 +69,7 @@ export function TenantProvider({ slug, children }: { slug: string; children: Rea
 
       if (currentEmp) {
         setEmployee(currentEmp);
-        setRole(currentEmp.role as 'owner' | 'admin' | 'manager' | 'cashier');
+        setRole(currentEmp.role as "owner" | "admin" | "manager" | "cashier");
       } else {
         const { data: empData } = await supabase
           .from("employees")
@@ -64,8 +80,8 @@ export function TenantProvider({ slug, children }: { slug: string; children: Rea
 
         if (empData) {
           setEmployee(empData as any);
-          setRole(empData.role as 'owner' | 'admin' | 'manager' | 'cashier');
-        } else if (currentBiz.owner_id === user.id) {
+          setRole(empData.role as "owner" | "admin" | "manager" | "cashier");
+        } else if (isOwner) {
           const { data: ownerProfile } = await supabase
             .from("profiles")
             .select("*")
@@ -75,7 +91,7 @@ export function TenantProvider({ slug, children }: { slug: string; children: Rea
           setEmployee({
             user_id: user.id,
             role: "owner",
-            profiles: ownerProfile
+            profiles: ownerProfile,
           } as any);
           setRole("owner");
         } else {
@@ -89,11 +105,11 @@ export function TenantProvider({ slug, children }: { slug: string; children: Rea
     }
     setLoading(false);
   }
-  
-  useEffect(() => { 
-    load(); 
-    /* eslint-disable-next-line */ 
-  }, [slug, user]);
+
+  useEffect(() => {
+    load();
+    /* eslint-disable-next-line */
+  }, [slug, userId]);
 
   return (
     <Ctx.Provider value={{ business, employee, role, loading, refresh: load }}>
